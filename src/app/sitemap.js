@@ -3,6 +3,21 @@ import { supabase } from '@/lib/supabase';
 
 export default async function sitemap() {
   const baseUrl = 'https://www.ssagesage.com';
+  const utilityPaths = [
+    '/utility',
+    '/utility/coupon-stack-calculator',
+    '/utility/direct-purchase-tax',
+    '/utility/discount-calculator',
+    '/utility/image-background-remover',
+    '/utility/nutrition-price-calculator',
+    '/utility/unit-price-calculator',
+  ];
+  const utilityEntries = utilityPaths.map((path) => ({
+    url: `${baseUrl}${path}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: path === '/utility' ? 0.8 : 0.7,
+  }));
 
   // 1. 핫딜온도계 품목(slug)들 가져오기
   const { data: groups } = await supabase.from('keyword_groups').select('slug');
@@ -30,6 +45,7 @@ export default async function sitemap() {
   return [
     { url: baseUrl, lastModified: new Date(), priority: 1 },
     { url: `${baseUrl}/hotdeal-thermometer`, lastModified: new Date(), priority: 0.9 },
+    ...utilityEntries,
     ...groupEntries,
     ...dealEntries,
   ];
