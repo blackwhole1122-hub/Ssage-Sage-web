@@ -13,7 +13,7 @@ const NUTRIENTS = [
   { id: 'protein',  label: '단백질',  unit: 'g',   icon: '💪', color: '#0ABAB5', desc: '근육·다이어트 식품 비교에 유용' },
   { id: 'calories', label: '칼로리',  unit: 'kcal', icon: '🔥', color: '#FF6B6B', desc: '에너지 효율 비교' },
   { id: 'carbs',    label: '탄수화물', unit: 'g',   icon: '🌾', color: '#F59E0B', desc: '저탄고지 식품 비교' },
-  { id: 'fat',      label: '지방',    unit: 'g',   icon: '🫙', color: '#8B5CF6', desc: '지방 함량 비교' },
+  { id: 'fat',      label: '지방',    unit: 'g',   icon: '🧈', color: '#8B5CF6', desc: '지방 함량 비교' },
   { id: 'fiber',    label: '식이섬유', unit: 'g',   icon: '🥦', color: '#10B981', desc: '건강기능식품 비교' },
   { id: 'sugar',    label: '당류',    unit: 'g',   icon: '🍬', color: '#EC4899', desc: '당 섭취 관리' },
 ];
