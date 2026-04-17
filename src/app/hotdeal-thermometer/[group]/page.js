@@ -9,6 +9,7 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { getUnitPrice, calculateGrade } from '@/lib/priceUtils';
+import { matchesGroupByTitle } from '@/lib/keywordMatcher';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend);
 
@@ -51,6 +52,11 @@ export default function DetailPage() {
       if (productData) {
         setProduct({ ...productData, benchmark: benchmarkData }); // 🌟 벤치마크 데이터를 상품 정보에 포함
 
+        const filteredHistory = (priceData || []).filter((row) =>
+          matchesGroupByTitle(row.title || row.group_name || '', productData.keywords || [])
+        );
+        setPriceHistory(filteredHistory);
+
         // 최저가 핫딜 찾기 (기존 로직 유지)
         const { data: allDeals } = await supabase
           .from('hotdeals')
@@ -67,10 +73,6 @@ export default function DetailPage() {
           }
         });
         setActiveDeal(bestDeal);
-      }
-
-      if (priceData) {
-        setPriceHistory(priceData);
       }
       setLoading(false);
     }
@@ -99,6 +101,17 @@ export default function DetailPage() {
   const referenceLow = benchmark ? benchmark.ref_low : 0;
   const avg3Month = benchmark ? benchmark.ref_avg : 0;
   const lastPrice = latestHistory.price || 0;
+  const hasComparison = avg3Month > 0 && lastPrice > 0;
+  const diffPercent = hasComparison
+    ? Math.abs(((lastPrice - avg3Month) / avg3Month) * 100)
+    : 0;
+  const comparisonType = !hasComparison
+    ? 'none'
+    : lastPrice < avg3Month
+      ? 'lower'
+      : lastPrice > avg3Month
+        ? 'higher'
+        : 'same';
 
   let grade = "분석중";
   if (currentUnitPrice > 0 && referenceLow > 0) {
@@ -183,6 +196,29 @@ export default function DetailPage() {
             )}
           </div>
         </div>
+
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-4">
+          <h3 className="text-sm font-black text-gray-800">이 가격, 어떻게 보면 될까요?</h3>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            이 페이지의 등급은 어제까지의 데이터를 기준으로 계산합니다. 기본은 최근 1년 데이터를 사용하고,
+            데이터가 1년보다 짧거나 최근 1년 표본이 20건 미만이면 보유한 전체 기간 기준으로 계산해요.
+          </p>
+          <p className="text-xs text-gray-700 leading-relaxed">
+            {comparisonType === 'none' && '비교 데이터가 충분하지 않아 현재는 참고용으로 확인해 주세요.'}
+            {comparisonType === 'lower' && (
+              <>최근 가격은 기준 평균가보다 약 <strong>{diffPercent.toFixed(1)}%</strong> 낮은 수준이에요.</>
+            )}
+            {comparisonType === 'higher' && (
+              <>최근 가격은 기준 평균가보다 약 <strong>{diffPercent.toFixed(1)}%</strong> 높은 수준이에요.</>
+            )}
+            {comparisonType === 'same' && '최근 가격은 기준 평균가와 거의 같은 수준이에요.'}
+          </p>
+          <ul className="list-disc pl-5 text-xs text-gray-600 leading-relaxed space-y-1">
+            <li>같은 상품이라도 용량/개수 구성이 다르면 체감 가격이 달라질 수 있어요.</li>
+            <li>쿠폰, 카드할인, 배송비 적용 여부에 따라 최종 결제금액이 달라질 수 있어요.</li>
+            <li>핫딜 특성상 가격은 빠르게 바뀔 수 있으니, 결제 전 한 번 더 확인해 주세요.</li>
+          </ul>
+        </section>
       </main>
     </div>
   );

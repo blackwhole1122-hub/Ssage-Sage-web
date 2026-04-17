@@ -344,12 +344,12 @@ export default function AdminKeywordSuggestions() {
                 {/* 추가 매칭 키워드 */}
                 <div>
                   <label className="text-[11px] font-bold text-gray-400 ml-1 block mb-1.5">
-                    추가 매칭 키워드 (쉼표 구분, 선택사항)
+                    추가 매칭 키워드 (쉼표 구분, 제외는 !키워드)
                   </label>
                   <textarea
                     value={approveForm.extra_keywords}
                     onChange={e => setApproveForm({...approveForm, extra_keywords: e.target.value})}
-                    placeholder={`"${approveModal.keyword}"은 자동 포함됩니다. 추가 변형만 입력하세요.`}
+                    placeholder={`"${approveModal.keyword}"은 자동 포함됩니다. 예: 1L, !스파게티니`}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-green-400 h-20 resize-none"
                   />
                   <p className="text-[10px] text-gray-300 mt-1 ml-1">

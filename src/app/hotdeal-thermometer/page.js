@@ -148,6 +148,29 @@ export default async function HotdealThermometerPage({ searchParams }) {
 
       {/* ── 본문 ── */}
       <main className="px-4 pt-4 pb-10">
+        <section className="bg-white rounded-2xl border border-[#E2E8F0] p-5 mb-6">
+          <h1 className="text-[18px] font-bold text-[#1E293B] mb-2">핫딜온도계 개요</h1>
+          <p className="text-[14px] text-[#475569] leading-relaxed mb-3">
+            핫딜이 "정말 저렴한 금액이 맞을까?"에 대한 궁금증에서 출발했고, 말만 핫딜이 아닌
+            진짜 핫딜가격이 얼만지를 알려드리는 것을 목표로 시작했어요. 품목별 시세 기준 데이터를 바탕으로
+            현재 가격 흐름을 빠르게 판단할 수 있도록 만든 지표예요. 각 품목 카드를 누르면 상세 페이지에서
+            가격 추이와 기준가를 함께 확인할 수 있어요.
+          </p>
+          <h2 className="text-[14px] font-bold text-[#1E293B] mb-2">등급 산정 기준</h2>
+          <p className="text-[13px] text-[#64748B] leading-relaxed mb-2">
+            등급은 어제까지의 가격 데이터를 기준으로 계산했어요. 기본은 최근 1년 데이터를 사용해
+            "평균 가격"과 "가장 저렴했던 가격"을 만들고, 현재 가격이 그 기준 대비 얼마나 좋은지 보여줘요.
+            다만 데이터가 1년보다 짧거나, 최근 1년 표본이 20건 미만인 상품은 보유한 전체 기간 기준으로 계산해요.
+          </p>
+          <ul className="list-disc pl-5 text-[13px] text-[#64748B] leading-relaxed space-y-1">
+            <li><span className="font-semibold text-[#1E293B]">역대급</span>: 현재 가격이 기준 최저가 이하</li>
+            <li><span className="font-semibold text-[#1E293B]">대박</span>: 현재 가격이 기준 평균가의 90% 이하</li>
+            <li><span className="font-semibold text-[#1E293B]">중박</span>: 현재 가격이 기준 평균가의 90% 초과, 95% 이하</li>
+            <li><span className="font-semibold text-[#1E293B]">평범</span>: 현재 가격이 기준 평균가의 95% 초과, 105% 이하</li>
+            <li><span className="font-semibold text-[#1E293B]">구매금지</span>: 현재 가격이 기준 평균가의 105% 초과</li>
+          </ul>
+        </section>
+
         {displayData.map(catHeader => {
           const itemsInMainCat = filteredGroups.filter(g => g.category === catHeader);
           if (itemsInMainCat.length === 0) return null;

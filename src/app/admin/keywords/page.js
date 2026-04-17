@@ -198,9 +198,9 @@ export default function AdminKeywords() {
                     placeholder="예: samdasoo-2l" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-400" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-[11px] font-bold text-gray-400 ml-1">매칭 키워드 (쉼표로 구분)</label>
+                  <label className="text-[11px] font-bold text-gray-400 ml-1">매칭 키워드 (쉼표 구분, 제외는 !키워드)</label>
                   <textarea value={form.keywords} onChange={e => setForm({...form, keywords: e.target.value})}
-                    placeholder="삼다수 2, 제주 삼다수 2L" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-400 h-20 resize-none" />
+                    placeholder="햇반, 햇반 210, !컵반" className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-orange-400 h-20 resize-none" />
                 </div>
               </div>
               <button onClick={handleAdd} className="w-full bg-orange-500 text-white font-black py-4 rounded-2xl mt-6 hover:bg-orange-600 transition-all shadow-lg active:scale-[0.98]">
@@ -342,7 +342,7 @@ export default function AdminKeywords() {
                   placeholder="예: samdasoo-2l" className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400" />
               </div>
               <div className="col-span-2 space-y-1">
-                <label className="text-[11px] font-bold text-gray-400 ml-1">매칭 키워드 (쉼표로 구분)</label>
+                <label className="text-[11px] font-bold text-gray-400 ml-1">매칭 키워드 (쉼표 구분, 제외는 !키워드)</label>
                 <textarea value={addForm.keywords} onChange={e => setAddForm({...addForm, keywords: e.target.value})}
                   className="w-full px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-400 h-16 resize-none" />
               </div>

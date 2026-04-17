@@ -3,6 +3,7 @@ import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useKeywordGroups } from '@/lib/keywords';
 import { getUnitPrice, calculateGrade } from '@/lib/priceUtils';
+import { matchesGroupByTitle } from '@/lib/keywordMatcher';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -135,8 +136,15 @@ const fetchDeals = useCallback(async (pageNum = 0, reset = false) => {
 
   const getDealGrade = (deal) => {
     const managedSlugs = allGroups.map(g => g.slug); let matchedGroup = null;
-    if (deal.group_slug && managedSlugs.includes(deal.group_slug)) matchedGroup = allGroups.find(g => g.slug === deal.group_slug);
-    if (!matchedGroup) matchedGroup = allGroups.find(g => g.keywords.some(k => { const n = deal.title?.replace(/\s/g, '') || ""; return n.includes(k.replace(/\s/g, '')); }));
+    if (deal.group_slug && managedSlugs.includes(deal.group_slug)) {
+      const directGroup = allGroups.find(g => g.slug === deal.group_slug);
+      if (directGroup && matchesGroupByTitle(deal.title, directGroup.keywords)) {
+        matchedGroup = directGroup;
+      }
+    }
+    if (!matchedGroup) {
+      matchedGroup = allGroups.find(g => matchesGroupByTitle(deal.title, g.keywords));
+    }
     if (!matchedGroup) return null;
     const benchmark = priceStats[matchedGroup.slug]; if (!benchmark) return null;
     const raw = parseInt(deal.price?.replace(/[^\d]/g, '') || "0");
