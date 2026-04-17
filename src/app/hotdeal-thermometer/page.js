@@ -1,114 +1,69 @@
-'use client'
-import { Suspense, useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUnitPrice, calculateGrade } from '@/lib/priceUtils';
-import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
+import { calculateGrade } from '@/lib/priceUtils';
+ 
+const categoryOrder = ['식품', '생활잡화', '가전/디지털', '상품권'];
+const foodSubOrder = ['가공식품', '음료/탄산', '음료', '음료/에너지음료', '생수', '디저트/아이스크림', '신선식품', '쌀/잡곡', '영양제'];
+const categoryIcons = {
+  전체: '🏷️',
+  식품: '🍎',
+  생활잡화: '🧴',
+  '가전/디지털': '📺',
+  상품권: '🎫',
+};
 
-function HotdealThermometerInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  
-  // ✨ URL 파라미터에서 초기값 읽기
-  const [activeCategory, setActiveCategory] = useState("전체");
-  const [searchQuery, setSearchQuery] = useState("");
-  useEffect(() => {
-  setActiveCategory(searchParams.get('category') || "전체");
-  setSearchQuery(searchParams.get('q') || "");
-}, [searchParams]);
-  const [groups, setGroups] = useState([]); 
-  const [categories, setCategories] = useState(["전체"]);
-  const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState(null);
-  
-  const categoryOrder = ['식품', '생활잡화', '가전/디지털', '상품권'];
-  const foodSubOrder = ['가공식품', '음료/탄산', '음료', '음료/에너지음료', '생수', '디저트/아이스크림', '신선식품', '쌀/잡곡', '영양제'];
+export const revalidate = 300;
 
-  const categoryIcons = {
-    "전체": "🏷️", "식품": "🍎", "생활잡화": "🧴", "가전/디지털": "📺", "상품권": "🎫"
+async function getThermometerData() {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+
+  const [{ data: groups }, { data: benchmarks }] = await Promise.all([
+    supabase.from('keyword_groups').select('slug, group_name, category, sub_category'),
+    supabase.from('price_benchmarks').select('slug, ref_low, ref_avg'),
+  ]);
+
+  const benchmarkMap = new Map((benchmarks || []).map((bm) => [bm.slug, bm]));
+  const enrichedGroups = (groups || []).map((group) => {
+    const benchmark = benchmarkMap.get(group.slug);
+    const currentUnitPrice = benchmark?.ref_avg || 0;
+    const grade = benchmark && currentUnitPrice > 0
+      ? calculateGrade(currentUnitPrice, benchmark.ref_low, benchmark.ref_avg)
+      : null;
+    return { ...group, grade };
+  });
+
+  const rawCategories = [...new Set(enrichedGroups.map((item) => item.category).filter(Boolean))];
+  const sortedCategories = rawCategories.sort((a, b) => {
+    const ai = categoryOrder.indexOf(a);
+    const bi = categoryOrder.indexOf(b);
+    const aOrder = ai === -1 ? 999 : ai;
+    const bOrder = bi === -1 ? 999 : bi;
+    return aOrder - bOrder;
+  });
+
+  return {
+    groups: enrichedGroups,
+    categories: ['전체', ...sortedCategories],
   };
+}
 
-  // ✨ URL 업데이트 함수
-  const updateURL = useCallback((newCategory, newQuery) => {
-    const params = new URLSearchParams();
-    if (newCategory && newCategory !== "전체") params.set('category', newCategory);
-    if (newQuery) params.set('q', newQuery);
-    
-    const query = params.toString();
-    const fullUrl = `/hotdeal-thermometer${query ? `?${query}` : ''}`;
-    router.push(fullUrl, { scroll: false });
-    
-    // ✨ 세션 스토리지에 현재 URL 저장
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('thermometerListUrl', fullUrl);
-    }
-  }, [router]);
+function makeListUrl(category, query) {
+  const params = new URLSearchParams();
+  if (category && category !== '전체') params.set('category', category);
+  if (query) params.set('q', query);
+  const qs = params.toString();
+  return `/hotdeal-thermometer${qs ? `?${qs}` : ''}`;
+}
 
-  // ✨ 페이지 로드 시에도 현재 URL 저장
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const currentUrl = window.location.pathname + window.location.search;
-      sessionStorage.setItem('thermometerListUrl', currentUrl);
-    }
-  }, [activeCategory, searchQuery]);
+export default async function HotdealThermometerPage({ searchParams }) {
+  const params = await searchParams;
+  const activeCategory = typeof params?.category === 'string' ? params.category : '전체';
+  const searchQuery = typeof params?.q === 'string' ? params.q.trim() : '';
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => { setUser(session?.user ?? null); });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => { setUser(session?.user ?? null); });
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoading(true);
-      try {
-        const [
-          { data: groupData },
-          { data: activeHotdeals },
-          { data: benchmarkData }
-        ] = await Promise.all([
-          supabase.from('keyword_groups').select('*'),
-          supabase.from('hotdeals').select('*'),
-          supabase.from('price_benchmarks').select('*')
-        ]);
-
-        if (groupData) {
-          const realTimePriceMap = {};
-          activeHotdeals?.forEach(deal => {
-            if (!deal.group_name) return;
-            const { price } = getUnitPrice(deal, deal.group_name);
-            const cleanName = deal.group_name.trim();
-            if (price > 0 && (!realTimePriceMap[cleanName] || price < realTimePriceMap[cleanName])) {
-              realTimePriceMap[cleanName] = price;
-            }
-          });
-
-          const benchmarkMap = {};
-          benchmarkData?.forEach(bm => { benchmarkMap[bm.slug] = bm; });
-
-          const enrichedGroups = groupData.map(group => {
-            const benchmark = benchmarkMap[group.slug];
-            const currentUnitPrice = benchmark?.ref_avg || 0;
-            let grade = "분석중";
-            if (benchmark && currentUnitPrice > 0) {
-              grade = calculateGrade(currentUnitPrice, benchmark.ref_low, benchmark.ref_avg);
-            }
-            return { ...group, currentPrice: currentUnitPrice, grade: grade };
-          });
-
-          setGroups(enrichedGroups);
-          const rawCats = [...new Set(enrichedGroups.map(item => item.category))];
-          const sortedCats = rawCats.sort((a, b) => categoryOrder.indexOf(a) - categoryOrder.indexOf(b));
-          setCategories(["전체", ...sortedCats]);
-        }
-      } catch (error) {
-        console.error("데이터 로딩 중 에러 발생:", error);
-      } finally {
-        setLoading(false);
-      }
-    } 
-    fetchData();
-  }, []);
+  const { groups, categories } = await getThermometerData();
 
   const gradeBadge = {
     "역대급": { bg: "bg-[#7C3AED]", text: "text-white" },
@@ -120,20 +75,13 @@ function HotdealThermometerInner() {
 
   const filteredGroups = groups.filter(item => {
     const matchesCategory = activeCategory === "전체" || item.category === activeCategory;
-    const matchesSearch = item.group_name.includes(searchQuery) || item.keywords?.some(kw => kw.includes(searchQuery));
+    const matchesSearch = !searchQuery || item.group_name?.includes(searchQuery);
     return matchesCategory && matchesSearch;
   });
 
   const displayData = activeCategory === "전체" 
     ? categoryOrder.filter(cat => filteredGroups.some(g => g.category === cat))
     : [activeCategory];
-
-  if (loading) return (
-    <div className="max-w-4xl mx-auto min-h-screen flex flex-col items-center justify-center gap-3">
-      <div className="loading-spinner"></div>
-      <span className="text-[14px] text-[#64748B]">전 품목 온도 체크 중</span>
-    </div>
-  );
 
   return (
     <div className="max-w-4xl mx-auto bg-[#FAF6F0] min-h-screen">
@@ -149,13 +97,7 @@ function HotdealThermometerInner() {
             />
           </a>
           <div className="flex items-center gap-1">
-            {user ? (
-              <a href="/mypage" className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#E6FAF9] text-[#0ABAB5] text-[13px] font-semibold hover:bg-[#CCF5F3] transition-colors">
-                {user.user_metadata?.display_name || "회원"}님
-              </a>
-            ) : (
-              <a href="/login" className="px-3 py-1.5 rounded-full text-[13px] font-medium text-[#64748B] hover:bg-[#F0EAE0] transition-colors">로그인</a>
-            )}
+            <a href="/login" className="px-3 py-1.5 rounded-full text-[13px] font-medium text-[#64748B] hover:bg-[#F0EAE0] transition-colors">로그인</a>
           </div>
         </header>
 
@@ -170,32 +112,26 @@ function HotdealThermometerInner() {
 
         {/* ── 검색바 ── */}
         <div className="bg-[#FFF9E6] px-4 py-3">
-          <div className="relative">
+          <form action="/hotdeal-thermometer" method="get" className="relative">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input 
+            {activeCategory !== '전체' && <input type="hidden" name="category" value={activeCategory} />}
+            <input
+              name="q"
+              defaultValue={searchQuery}
               type="text" 
               placeholder="어떤 상품의 시세가 궁금하세요?" 
               className="w-full pl-11 pr-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E2E8F0] focus:outline-none focus:ring-2 focus:ring-[#0ABAB5] focus:border-transparent focus:bg-white text-[14px] placeholder:text-[#94A3B8] transition-all"
-              value={searchQuery}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchQuery(value);
-                updateURL(activeCategory, value);
-              }}
             />
-          </div>
+          </form>
         </div>
 
         {/* ── 카테고리 칩 (아이콘 포함, 다른 페이지와 동일 스타일) ── */}
         <div className="bg-[#FFF9E6] border-b border-[#E2E8F0]">
           <div className="flex gap-1.5 px-4 py-2 overflow-x-auto scrollbar-hide">
             {categories.map((c) => (
-              <button 
+              <a
                 key={c} 
-                onClick={() => {
-                  setActiveCategory(c);
-                  updateURL(c, searchQuery);
-                }}
+                href={makeListUrl(c, searchQuery)}
                 className={`flex items-center gap-1 px-3 py-2 rounded-xl text-[13px] font-medium whitespace-nowrap transition-all ${
                   activeCategory === c 
                     ? 'bg-[#0ABAB5] text-white' 
@@ -204,7 +140,7 @@ function HotdealThermometerInner() {
               >
                 <span className="text-[12px]">{categoryIcons[c] || "📦"}</span>
                 {c}
-              </button>
+              </a>
             ))}
           </div>
         </div>
@@ -217,7 +153,13 @@ function HotdealThermometerInner() {
           if (itemsInMainCat.length === 0) return null;
 
           const subCategories = [...new Set(itemsInMainCat.map(i => i.sub_category))].sort((a, b) => {
-            if (catHeader === '식품') return foodSubOrder.indexOf(a) - foodSubOrder.indexOf(b);
+            if (catHeader === '식품') {
+              const ai = foodSubOrder.indexOf(a);
+              const bi = foodSubOrder.indexOf(b);
+              const aOrder = ai === -1 ? 999 : ai;
+              const bOrder = bi === -1 ? 999 : bi;
+              return aOrder - bOrder;
+            }
             return a.localeCompare(b);
           });
 
@@ -237,7 +179,7 @@ function HotdealThermometerInner() {
                       {itemsInSubCat.map((item) => {
                         const badge = gradeBadge[item.grade];
                         return (
-                          <a 
+                          <Link
                             key={item.slug} 
                             href={`/hotdeal-thermometer/${item.slug}`}
                             className="deal-card bg-white rounded-2xl p-4 border border-[#E2E8F0] flex items-center gap-3.5 group"
@@ -246,7 +188,6 @@ function HotdealThermometerInner() {
                               <img 
                                 src={`https://bpoerueomemrufjoxrej.supabase.co/storage/v1/object/public/thermometer/${item.slug}.png`}
                                 className="w-9 h-9 object-contain group-hover:scale-110 transition-transform"
-                                onError={(e) => { e.target.src = '/images/default-icon.png'; }}
                                 alt={item.group_name}
                               />
                             </div>
@@ -264,7 +205,7 @@ function HotdealThermometerInner() {
                               </div>
                             </div>
                             <svg className="text-[#CBD5E1] flex-shrink-0 group-hover:text-[#0ABAB5] transition-colors" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                          </a>
+                          </Link>
                         );
                       })}
                     </div>
@@ -275,7 +216,7 @@ function HotdealThermometerInner() {
           );
         })}
 
-        {filteredGroups.length === 0 && !loading && (
+        {filteredGroups.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-2">
             <span className="text-4xl">🌡️</span>
             <p className="text-[15px] font-semibold text-[#1E293B]">
@@ -286,13 +227,5 @@ function HotdealThermometerInner() {
         )}
       </main>
     </div>
-  );
-}
-
-export default function HotdealThermometerPage() {
-  return (
-    <Suspense fallback={<div className="py-20 text-center">핫딜 온도계를 불러오는 중...</div>}>
-      <HotdealThermometerInner />
-    </Suspense>
   );
 }

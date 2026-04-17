@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DOMPurify from 'dompurify';
 
@@ -10,16 +11,19 @@ export default function DealDetailPage({ params: promiseParams }) {
   const params = use(promiseParams);
   const [deal, setDeal] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [referrer, setReferrer] = useState('/hotdeals');
+  const router = useRouter();
+
+  // ✨ [수정] sessionStorage 기반 referrer 제거 → router.back() 으로 교체
+  //    이전 방문에서 남은 필터 URL이 뒤로가기에 잘못 적용되는 문제 해결
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/hotdeals');
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedReferrer = sessionStorage.getItem('dealListUrl');
-      if (savedReferrer) {
-        setReferrer(savedReferrer);
-      }
-    }
-
     async function fetchDeal() {
       const { data, error } = await supabase
         .from('hotdeals')
@@ -62,25 +66,38 @@ export default function DealDetailPage({ params: promiseParams }) {
     ALLOW_DATA_ATTR: false,
   });
 
+  // ✨ [추가] 날짜 포맷 헬퍼
+  const formatDate = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   return (
     <div className="max-w-4xl mx-auto bg-[#FAF6F0] min-h-screen">
-      {/* ✨ 뒤로가기 버튼 - 필터 유지 */}
+      {/* ✨ 뒤로가기 버튼 - router.back() 으로 정확한 이전 페이지 이동 */}
       <header className="bg-white border-b border-[#E2E8F0] px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
-        <Link 
-          href={referrer}
+        <button 
+          onClick={handleBack}
           className="text-[#64748B] hover:text-[#0ABAB5]"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M19 12H5M12 19l-7-7 7-7"/>
           </svg>
-        </Link>
+        </button>
         <h1 className="text-[16px] font-bold text-[#1E293B]">핫딜 상세</h1>
       </header>
 
       {/* 본문 내용 */}
       <main className="p-4 flex flex-col">
-        {/* 1. 상품 제목 */}
-        <h1 className="text-[20px] font-bold mb-3">{deal.title}</h1>
+        {/* 1. 상품 제목 + 업로드 날짜 */}
+        <h1 className="text-[20px] font-bold mb-1">{deal.title}</h1>
+        {deal.crawled_at && (
+          <p className="text-[12px] text-[#94A3B8] mb-3">
+            🕐 {formatDate(deal.crawled_at)}
+          </p>
+        )}
         
         {/* 2. 대표 이미지 */}
         {deal.image && (

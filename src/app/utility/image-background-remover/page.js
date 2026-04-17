@@ -75,6 +75,36 @@ export default function ImageBackgroundRemoverPage() {
     setError(null);
     const startTime = Date.now();
 
+    // ✨ [수정] rembg-api 재시도 헬퍼
+    // AbortSignal.timeout() → AbortController + setTimeout 으로 교체 (구형 Chrome 호환)
+    const fetchWithRetry = async (url, options, maxRetries = 3, retryDelayMs = 12000) => {
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 120000);
+        try {
+          const res = await fetch(url, { ...options, signal: controller.signal });
+          clearTimeout(timeoutId);
+          if (res.ok) return res;
+          // 5xx 서버 오류 시 재시도
+          if (res.status >= 500 && attempt < maxRetries - 1) {
+            console.warn(`rembg-api ${res.status} — ${retryDelayMs/1000}초 후 재시도 (${attempt+1}/${maxRetries})`);
+            await new Promise(r => setTimeout(r, retryDelayMs));
+            continue;
+          }
+          throw new Error(`서버 오류 ${res.status}`);
+        } catch (err) {
+          clearTimeout(timeoutId);
+          if (attempt < maxRetries - 1 && (err.name === 'TypeError' || err.name === 'AbortError' || String(err).includes('fetch'))) {
+            console.warn(`rembg-api 연결 실패 — ${retryDelayMs/1000}초 후 재시도 (${attempt+1}/${maxRetries})`);
+            await new Promise(r => setTimeout(r, retryDelayMs));
+            continue;
+          }
+          throw err;
+        }
+      }
+      throw new Error('최대 재시도 횟수 초과');
+    };
+
     try {
       const apiUrl = process.env.NEXT_PUBLIC_REMBG_API_URL || 'http://100.83.35.111:8000/remove-bg';
       
@@ -87,7 +117,7 @@ export default function ImageBackgroundRemoverPage() {
         formData.append('model', selectedModel);
         formData.append('threshold', version.threshold.toString());
 
-        const response = await fetch(apiUrl, {
+        const response = await fetchWithRetry(apiUrl, {
           method: 'POST',
           body: formData,
         });
