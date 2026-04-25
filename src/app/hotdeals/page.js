@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
+import { Suspense, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useKeywordGroups } from '@/lib/keywords';
 import { getUnitPrice, calculateGrade } from '@/lib/priceUtils';
@@ -32,6 +32,18 @@ function HotdealsListInner() {
   const requestIdRef = useRef(0);
   const [user, setUser] = useState(null);
   const { allGroups, loading: kwLoading } = useKeywordGroups();
+  const crawledAtFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        month: 'numeric',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }),
+    []
+  );
 
   // ✨ 필터 상태를 URL에 반영하는 함수
   const updateURL = useCallback((newCategory, newSource, newQuery) => {
@@ -274,7 +286,7 @@ const fetchDeals = useCallback(async (pageNum = 0, reset = false) => {
                         <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${badge.bg} ${badge.text}`}>{badge.icon} {gradeInfo.grade}</span>
                       )}
                       <span className="text-[11px] text-[#94A3B8] ml-auto flex-shrink-0">
-                        {new Date(deal.crawled_at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
+                        {crawledAtFormatter.format(new Date(deal.crawled_at))}
                       </span>
                     </div>
                     <p className="text-[14px] font-medium text-[#1E293B] line-clamp-2 leading-[1.4] mb-1.5">{deal.title}</p>

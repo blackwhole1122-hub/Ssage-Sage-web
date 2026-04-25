@@ -10,6 +10,16 @@ export default function BlogCategoryTabs({
   initialCategoryName,
 }) {
   const router = useRouter();
+  const postDateFormatter = useMemo(
+    () =>
+      new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      }),
+    []
+  );
 
   const initialCategoryId = useMemo(() => {
     if (!initialCategoryName) return null;
@@ -113,11 +123,7 @@ export default function BlogCategoryTabs({
               </p>
 
               <div className="text-[12px] text-[#94A3B8] font-medium pt-3 border-t border-[#E2E8F0]">
-                {new Date(post.created_at).toLocaleDateString('ko-KR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {postDateFormatter.format(new Date(post.created_at))}
               </div>
             </Link>
           ))}
