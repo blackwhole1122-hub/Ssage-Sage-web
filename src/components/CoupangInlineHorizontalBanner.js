@@ -2,21 +2,32 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-function getBannerSize(containerWidth) {
-  const width = Math.max(320, Math.min(980, Math.round(containerWidth || 0)));
-  const height = Math.max(100, Math.min(180, Math.round(width * 0.22)));
+function getBannerSize(containerWidth, fillWidth, preset) {
+  if (preset === 'wide70') {
+    const baseWidth = 864;
+    const baseHeight = 70;
+    const width = Math.max(320, Math.min(baseWidth, Math.round(containerWidth || baseWidth)));
+    const height = Math.max(36, Math.round((width / baseWidth) * baseHeight));
+    return { width, height };
+  }
+
+  const width = fillWidth
+    ? Math.max(320, Math.round(containerWidth || 0))
+    : Math.max(320, Math.min(760, Math.round((containerWidth || 0) * 0.72)));
+  const height = Math.max(90, Math.min(150, Math.round(width * 0.22)));
   return { width, height };
 }
 
-export default function CoupangInlineHorizontalBanner() {
+export default function CoupangInlineHorizontalBanner({ fillWidth = false, preset = 'default' }) {
   const wrapperRef = useRef(null);
   const slotRef = useRef(null);
-  const [size, setSize] = useState({ width: 320, height: 100 });
+  const renderTokenRef = useRef(0);
+  const [size, setSize] = useState(null);
 
   useEffect(() => {
     const update = () => {
       const width = wrapperRef.current?.clientWidth || 320;
-      setSize(getBannerSize(width));
+      setSize(getBannerSize(width, fillWidth, preset));
     };
 
     update();
@@ -28,11 +39,13 @@ export default function CoupangInlineHorizontalBanner() {
       ro.disconnect();
       window.removeEventListener('resize', update);
     };
-  }, []);
+  }, [fillWidth, preset]);
 
   useEffect(() => {
     const slot = slotRef.current;
-    if (!slot) return;
+    if (!slot || !size) return;
+
+    const token = ++renderTokenRef.current;
 
     slot.innerHTML = '';
 
@@ -43,7 +56,7 @@ export default function CoupangInlineHorizontalBanner() {
     const inlineScript = document.createElement('script');
     inlineScript.text = `
       new PartnersCoupang.G({
-        id: 983816,
+        id: ${preset === 'wide70' ? 983844 : 983816},
         template: "carousel",
         trackingCode: "AF9495324",
         width: "${size.width}",
@@ -53,6 +66,7 @@ export default function CoupangInlineHorizontalBanner() {
     `;
 
     externalScript.onload = () => {
+      if (renderTokenRef.current !== token) return;
       slot.appendChild(inlineScript);
     };
 
@@ -61,13 +75,15 @@ export default function CoupangInlineHorizontalBanner() {
     return () => {
       slot.innerHTML = '';
     };
-  }, [size.width, size.height]);
+  }, [size?.width, size?.height]);
+
+  if (!size) return null;
 
   return (
     <div className="mt-6" ref={wrapperRef}>
       <div
         className="overflow-hidden rounded-xl border border-[#E2E8F0] bg-white"
-        style={{ width: '100%', maxWidth: `${size.width}px`, height: `${size.height}px` }}
+        style={{ width: '100%', maxWidth: fillWidth ? 'none' : `${size.width}px`, height: `${size.height}px` }}
       >
         <div ref={slotRef} style={{ width: `${size.width}px`, height: `${size.height}px` }} />
       </div>

@@ -190,9 +190,6 @@ function CoupangHotdealsInner() {
       </div>
 
       <main className="px-4 pt-3 pb-10">
-        <div className="lg:hidden mb-4 flex justify-center">
-          <CoupangSidebarBanner mode="mobile" />
-        </div>
         {loading && (<div className="flex flex-col items-center justify-center py-24 gap-3"><div className="loading-spinner"></div><span className="text-[14px] text-[#64748B]">쿠팡 핫딜을 불러오고 있어요</span></div>)}
         {!loading && allDeals.length === 0 && (<div className="flex flex-col items-center justify-center py-24 gap-2"><span className="text-4xl">🛒</span><p className="text-[15px] font-semibold text-[#1E293B]">상품이 없어요</p></div>)}
         <div className="flex flex-col gap-2">

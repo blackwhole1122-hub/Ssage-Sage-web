@@ -346,7 +346,7 @@ export default function DirectPurchaseTaxPage() {
           </div>
         )}
 
-        <CoupangInlineHorizontalBanner />
+        <CoupangInlineHorizontalBanner fillWidth />
 
         <div className="mt-6 bg-[#FFFBEB] rounded-xl p-4 border border-[#FDE68A]">
           <p className="text-[12px] text-[#92400E] leading-relaxed font-semibold mb-2">⚠️ 꼭 확인하세요</p>

@@ -196,7 +196,7 @@ export default function CouponStackCalculatorPage() {
           </div>
         )}
 
-        <CoupangInlineHorizontalBanner />
+        <CoupangInlineHorizontalBanner fillWidth />
 
         {/* ── 안내 ── */}
         <div className="mt-6 bg-[#F8FAFC] rounded-xl p-4 border border-[#E2E8F0]">

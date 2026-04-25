@@ -169,9 +169,7 @@ export default function DiscountCalculatorPage() {
             <p className="text-[14px] text-[#94A3B8]">값을 입력하면 바로 계산돼요</p>
           </div>
         )}
-
-        <CoupangInlineHorizontalBanner />
-
+        <CoupangInlineHorizontalBanner fillWidth />
         {/* ── 안내 ── */}
         <div className="mt-6 bg-[#F8FAFC] rounded-xl p-4 border border-[#E2E8F0]">
           <p className="text-[12px] text-[#94A3B8] leading-relaxed">
