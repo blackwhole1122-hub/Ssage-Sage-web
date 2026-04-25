@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -9,10 +9,10 @@ function CoupangHotdealsInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // ✨ URL 파라미터에서 초기값 읽기
-  const [category, setCategory] = useState("전체");
+  // ??URL ?뚮씪誘명꽣?먯꽌 珥덇린媛??쎄린
+  const [category, setCategory] = useState("?꾩껜");
   const [searchQuery, setSearchQuery] = useState("");
-  const [discountFilter, setDiscountFilter] = useState("전체");
+  const [discountFilter, setDiscountFilter] = useState("?꾩껜");
   const [allDeals, setAllDeals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -22,33 +22,33 @@ function CoupangHotdealsInner() {
   const [user, setUser] = useState(null);
   const [showDiscountMenu, setShowDiscountMenu] = useState(false);
 
-  const categories = ["전체", "식품", "가전", "생활용품", "뷰티", "패션", "기타"];
-  const categoryIcons = { "전체": "🏷️", "식품": "🍎", "가전": "📺", "생활용품": "🧴", "뷰티": "💄", "패션": "👕", "기타": "📦" };
+  const categories = ["?꾩껜", "?앺뭹", "媛??, "?앺솢?⑺뭹", "酉고떚", "?⑥뀡", "湲고?"];
+  const categoryIcons = { "?꾩껜": "?뤇截?, "?앺뭹": "?뜋", "媛??: "?벟", "?앺솢?⑺뭹": "?㎢", "酉고떚": "?뭵", "?⑥뀡": "?몧", "湲고?": "?벀" };
 
   useEffect(() => {
-  setCategory(searchParams.get('category') || "전체");
+  setCategory(searchParams.get('category') || "?꾩껜");
   setSearchQuery(searchParams.get('q') || "");
-  setDiscountFilter(searchParams.get('discount') || "전체");
+  setDiscountFilter(searchParams.get('discount') || "?꾩껜");
 }, [searchParams]);
 
-  // ✨ 필터 상태를 URL에 반영하는 함수
+  // ???꾪꽣 ?곹깭瑜?URL??諛섏쁺?섎뒗 ?⑥닔
   const updateURL = useCallback((newCategory, newQuery, newDiscount) => {
     const params = new URLSearchParams();
-    if (newCategory && newCategory !== "전체") params.set('category', newCategory);
+    if (newCategory && newCategory !== "?꾩껜") params.set('category', newCategory);
     if (newQuery) params.set('q', newQuery);
-    if (newDiscount && newDiscount !== "전체") params.set('discount', newDiscount);
+    if (newDiscount && newDiscount !== "?꾩껜") params.set('discount', newDiscount);
     
     const query = params.toString();
     const fullUrl = `/coupang${query ? `?${query}` : ''}`;
     router.push(fullUrl, { scroll: false });
     
-    // ✨ 현재 URL을 세션 스토리지에 저장
+    // ???꾩옱 URL???몄뀡 ?ㅽ넗由ъ??????
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('coupangListUrl', fullUrl);
     }
   }, [router]);
 
-  // ✨ 페이지 로드 시에도 현재 URL 저장
+  // ???섏씠吏 濡쒕뱶 ?쒖뿉???꾩옱 URL ???
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const currentUrl = window.location.pathname + window.location.search;
@@ -83,18 +83,18 @@ function CoupangHotdealsInner() {
       .order('updated_at', { ascending: false })
       .range(from, to);
 
-    if (category !== "전체") query = query.eq('category', category);
+    if (category !== "?꾩껜") query = query.eq('category', category);
     if (searchQuery) query = query.ilike('name', `%${searchQuery}%`);
     if (discountFilter === "50~60%") query = query.gte('discount_rate', 50).lt('discount_rate', 60);
     else if (discountFilter === "60~70%") query = query.gte('discount_rate', 60).lt('discount_rate', 70);
-    else if (discountFilter === "70% 이상") query = query.gte('discount_rate', 70);
+    else if (discountFilter === "70% ?댁긽") query = query.gte('discount_rate', 70);
 
     const { data, error } = await query;
 
     if (requestId !== requestIdRef.current) return;
 
     if (error) {
-      console.error('데이터 실패:', error);
+      console.error('?곗씠???ㅽ뙣:', error);
     } else {
       setAllDeals((prev) => {
         const next = data || [];
@@ -122,25 +122,25 @@ function CoupangHotdealsInner() {
           <div className="w-full lg:max-w-4xl lg:flex-1 lg:min-w-0">
       <div className="sticky top-0 z-30">
         <header className="bg-[#FFF9E6] px-4 py-3 flex items-center justify-between">
-          <Link href="/coupang" className="flex items-center"><img src="/logo-coupang-hotdeal.png" alt="쿠팡핫딜" className="h-12 w-auto object-contain" /></Link>
+          <Link href="/coupang" className="flex items-center"><img src="/logo-coupang-hotdeal.png" alt="荑좏뙜?ル뵜" className="h-12 w-auto object-contain" /></Link>
           <div className="flex items-center gap-1">
-            {user ? (<Link href="/mypage" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#E6FAF9] text-[#0ABAB5] text-[13px] font-semibold">{user.user_metadata?.display_name || "회원"}님</Link>
-            ) : (<Link href="/login" className="px-3 py-1.5 rounded-xl text-[13px] font-medium text-[#64748B]">로그인</Link>)}
+            {user ? (<Link href="/mypage" className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#E6FAF9] text-[#0ABAB5] text-[13px] font-semibold">{user.user_metadata?.display_name || "?뚯썝"}??/Link>
+            ) : (<Link href="/login" className="px-3 py-1.5 rounded-xl text-[13px] font-medium text-[#64748B]">濡쒓렇??/Link>)}
           </div>
         </header>
         <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5 border-b border-[#E2E8F0]">
-          <Link href="/hotdeals" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">핫딜모음</Link>
-          <Link href="/coupang" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">쿠팡핫딜</Link>
-          <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">핫딜온도계</Link>
-          <Link href="/blog" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">정보모음</Link>
-          <Link href="/utility" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">유틸리티</Link>
+          <Link href="/hotdeals" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">?ル뵜紐⑥쓬</Link>
+          <Link href="/coupang" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">荑좏뙜?ル뵜</Link>
+          <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">?ル뵜?⑤룄怨?/Link>
+          <Link href="/blog" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">?뺣낫紐⑥쓬</Link>
+          <Link href="/utility" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">?좏떥由ы떚</Link>
         </nav>
         <div className="bg-[#FFF9E6] px-4 py-3">
           <div className="relative">
             <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#94A3B8]" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
             <input
               type="text"
-              placeholder="쿠팡 핫딜을 검색해 보세요"
+              placeholder="荑좏뙜 ?ル뵜??寃?됲빐 蹂댁꽭??
               className="w-full pl-11 pr-4 py-3 rounded-xl bg-[#FAF6F0] border border-[#E2E8F0] focus:outline-none focus:ring-2 focus:ring-[#0ABAB5] focus:border-transparent focus:bg-white text-[14px] placeholder:text-[#94A3B8] transition-all"
               value={searchQuery}
               onChange={(e) => {
@@ -155,20 +155,20 @@ function CoupangHotdealsInner() {
           <div className="flex items-center gap-1 px-3 py-2">
             <div className="relative flex-shrink-0">
               <button onClick={() => setShowDiscountMenu(!showDiscountMenu)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${discountFilter !== "전체" ? 'bg-[#FF6B6B] text-white' : 'bg-[#FAF6F0] text-[#64748B] border border-[#E2E8F0]'}`}>
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all ${discountFilter !== "?꾩껜" ? 'bg-[#FF6B6B] text-white' : 'bg-[#FAF6F0] text-[#64748B] border border-[#E2E8F0]'}`}>
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                {discountFilter !== "전체" ? discountFilter : "할인율"}
+                {discountFilter !== "?꾩껜" ? discountFilter : "?좎씤??}
               </button>
               {showDiscountMenu && (
                 <div className="absolute top-11 left-0 bg-white border border-[#E2E8F0] rounded-xl shadow-xl z-30 p-1.5 w-40 animate-slide-down">
-                  {["전체", "50~60%", "60~70%", "70% 이상"].map((df) => (
+                  {["?꾩껜", "50~60%", "60~70%", "70% ?댁긽"].map((df) => (
                     <button key={df} onClick={() => { 
                       setDiscountFilter(df); 
                       setShowDiscountMenu(false);
                       updateURL(category, searchQuery, df);
                     }}
                       className={`w-full text-left px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors ${discountFilter === df ? 'bg-[#FF6B6B] text-white' : 'text-[#1E293B] hover:bg-[#FAF6F0]'}`}>
-                      {df === "전체" ? "할인율 전체" : df}
+                      {df === "?꾩껜" ? "?좎씤???꾩껜" : df}
                     </button>
                   ))}
                 </div>
@@ -193,8 +193,8 @@ function CoupangHotdealsInner() {
         <div className="lg:hidden mb-4 flex justify-center">
           <CoupangSidebarBanner mode="mobile" />
         </div>
-        {loading && (<div className="flex flex-col items-center justify-center py-24 gap-3"><div className="loading-spinner"></div><span className="text-[14px] text-[#64748B]">쿠팡 핫딜을 불러오고 있어요</span></div>)}
-        {!loading && allDeals.length === 0 && (<div className="flex flex-col items-center justify-center py-24 gap-2"><span className="text-4xl">🛒</span><p className="text-[15px] font-semibold text-[#1E293B]">상품이 없어요</p></div>)}
+{loading && (<div className="flex flex-col items-center justify-center py-24 gap-3"><div className="loading-spinner"></div><span className="text-[14px] text-[#64748B]">荑좏뙜 ?ル뵜??遺덈윭?ㅺ퀬 ?덉뼱??/span></div>)}
+        {!loading && allDeals.length === 0 && (<div className="flex flex-col items-center justify-center py-24 gap-2"><span className="text-4xl">?썟</span><p className="text-[15px] font-semibold text-[#1E293B]">?곹뭹???놁뼱??/p></div>)}
         <div className="flex flex-col gap-2">
           {!loading && allDeals.map((deal) => (
             <Link key={deal.product_id} href={`/coupang/${deal.product_id}`} className="deal-card relative flex gap-3.5 p-3.5 bg-white rounded-xl border border-[#E2E8F0] overflow-hidden">
@@ -208,10 +208,10 @@ function CoupangHotdealsInner() {
                   <p className="text-[14px] font-medium text-[#1E293B] line-clamp-2 leading-[1.4] mb-1.5">{deal.name}</p>
                 </div>
                 <div>
-                  {deal.original_price > 0 && (<div className="flex items-center gap-1.5 mb-0.5"><span className="text-[12px] text-[#94A3B8] line-through">{deal.original_price.toLocaleString()}원</span><span className="text-[11px] font-bold text-[#FF6B6B]">-{deal.discount_rate}%</span></div>)}
+                  {deal.original_price > 0 && (<div className="flex items-center gap-1.5 mb-0.5"><span className="text-[12px] text-[#94A3B8] line-through">{deal.original_price.toLocaleString()}??/span><span className="text-[11px] font-bold text-[#FF6B6B]">-{deal.discount_rate}%</span></div>)}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[17px] font-extrabold text-[#FF6B6B]">{deal.discount_price.toLocaleString()}원</span>
-                    <span className="text-[11px] font-bold text-[#5CE1E6]">특가</span>
+                    <span className="text-[17px] font-extrabold text-[#FF6B6B]">{deal.discount_price.toLocaleString()}??/span>
+                    <span className="text-[11px] font-bold text-[#5CE1E6]">?밴?</span>
                   </div>
                 </div>
               </div>
@@ -219,8 +219,8 @@ function CoupangHotdealsInner() {
           ))}
         </div>
         <div ref={observerRef} className="py-8 text-center">
-          {loadingMore && (<div className="flex items-center justify-center gap-2"><div className="loading-spinner"></div><span className="text-[13px] text-[#64748B]">더 불러오는 중</span></div>)}
-          {!hasMore && !loading && (<p className="text-[13px] text-[#94A3B8]">마지막 핫딜입니다</p>)}
+          {loadingMore && (<div className="flex items-center justify-center gap-2"><div className="loading-spinner"></div><span className="text-[13px] text-[#64748B]">??遺덈윭?ㅻ뒗 以?/span></div>)}
+          {!hasMore && !loading && (<p className="text-[13px] text-[#94A3B8]">留덉?留??ル뵜?낅땲??/p>)}
         </div>
       </main>
           </div>
@@ -237,8 +237,9 @@ function CoupangHotdealsInner() {
 }
 export default function CoupangHotdealsPage() {
   return (
-    <Suspense fallback={<div className="py-20 text-center">쿠팡 핫딜을 불러오는 중...</div>}>
+    <Suspense fallback={<div className="py-20 text-center">荑좏뙜 ?ル뵜??遺덈윭?ㅻ뒗 以?..</div>}>
       <CoupangHotdealsInner />
     </Suspense>
   );
 }
+

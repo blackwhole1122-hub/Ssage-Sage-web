@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
@@ -6,7 +6,7 @@ import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
-const SITE_NAME = '싸게사게';
+const SITE_NAME = '?멸쾶?ш쾶';
 
 function escapeHtml(str = '') {
   return str
@@ -37,7 +37,7 @@ function slugifyText(text = '') {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/[^a-z0-9媛-??s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 }
@@ -205,7 +205,7 @@ export async function generateMetadata({ params }) {
 
   if (!post) {
     return {
-      title: '글을 찾을 수 없습니다',
+      title: '湲??李얠쓣 ???놁뒿?덈떎',
       robots: { index: false, follow: false },
     };
   }
@@ -215,7 +215,7 @@ export async function generateMetadata({ params }) {
   const image = getPreferredPostImage(post);
 
   return {
-    title: `${post.title} | ${SITE_NAME} 블로그`,
+    title: `${post.title} | ${SITE_NAME} 釉붾줈洹?,
     description: summary,
     alternates: { canonical },
     keywords: Array.isArray(post.tags) ? post.tags : [],
@@ -281,8 +281,8 @@ export default async function BlogPostPage({ params }) {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: '홈', item: SITE_URL },
-        { '@type': 'ListItem', position: 2, name: '블로그', item: `${SITE_URL}/blog` },
+        { '@type': 'ListItem', position: 1, name: '??, item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: '釉붾줈洹?, item: `${SITE_URL}/blog` },
         { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
       ],
     },
@@ -302,7 +302,7 @@ export default async function BlogPostPage({ params }) {
                   <div className="flex items-center gap-2">
                     <Link href="/blog" className="flex items-center">
                       <span className="text-[24px] font-black text-[#1E293B] tracking-tight leading-[48px]">
-                        정보모음
+                        ?뺣낫紐⑥쓬
                       </span>
                     </Link>
                   </div>
@@ -310,25 +310,23 @@ export default async function BlogPostPage({ params }) {
                     href="/"
                     className="text-[13px] font-medium text-[#64748B] hover:text-[#1E293B] px-3 py-1.5 rounded-full hover:bg-[#FAF6F0] transition-colors"
                   >
-                    홈으로
-                  </Link>
+                    ?덉쑝濡?                  </Link>
                 </div>
 
                 <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
                   <Link href="/hotdeals" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    핫딜모음
+                    ?ル뵜紐⑥쓬
                   </Link>
                   <Link href="/coupang" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    쿠팡핫딜
+                    荑좏뙜?ル뵜
                   </Link>
                   <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    핫딜온도계
-                  </Link>
+                    ?ル뵜?⑤룄怨?                  </Link>
                   <Link href="/blog" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
-                    정보모음
+                    ?뺣낫紐⑥쓬
                   </Link>
                   <Link href="/utility" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    유틸리티
+                    ?좏떥由ы떚
                   </Link>
                 </nav>
               </header>
@@ -337,13 +335,13 @@ export default async function BlogPostPage({ params }) {
                 <div className="lg:hidden mb-4 flex justify-center">
                   <CoupangSidebarBanner mode="mobile" />
                 </div>
-        <Link href="/blog" className="inline-flex items-center gap-1.5 text-[13px] text-[#64748B] hover:text-[#0ABAB5] transition-colors mb-8">
+<Link href="/blog" className="inline-flex items-center gap-1.5 text-[13px] text-[#64748B] hover:text-[#0ABAB5] transition-colors mb-8">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          정보모음
+          ?뺣낫紐⑥쓬
         </Link>
 
         <header className="mb-10">
-          <div className="text-4xl mb-4">{post.emoji || '📝'}</div>
+          <div className="text-4xl mb-4">{post.emoji || '?뱷'}</div>
           {categoryName && (
             <span className="inline-block text-[12px] bg-[#E6FAF9] text-[#0ABAB5] px-2.5 py-1 rounded-full mb-3 font-semibold">
               {categoryName}
@@ -359,8 +357,8 @@ export default async function BlogPostPage({ params }) {
             <time>
               {new Date(post.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
             </time>
-            <span>·</span>
-            <span>약 {readingMinutes}분 읽기</span>
+            <span>쨌</span>
+            <span>??{readingMinutes}遺??쎄린</span>
           </div>
         </header>
 
@@ -387,7 +385,7 @@ export default async function BlogPostPage({ params }) {
         <footer className="mt-16 pt-8 border-t border-[#E2E8F0]">
           {relatedPosts.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-[16px] font-bold text-[#1E293B] mb-3">관련 글</h2>
+              <h2 className="text-[16px] font-bold text-[#1E293B] mb-3">愿??湲</h2>
               <ul className="grid gap-2 md:grid-cols-2">
                 {relatedPosts.map((item) => (
                   <li key={item.id}>
@@ -402,7 +400,7 @@ export default async function BlogPostPage({ params }) {
 
           <Link href="/blog" className="inline-flex items-center gap-2 text-[14px] text-[#0ABAB5] font-semibold hover:underline transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            다른 글 더 보기
+            ?ㅻⅨ 湲 ??蹂닿린
           </Link>
         </footer>
               </article>
@@ -419,3 +417,4 @@ export default async function BlogPostPage({ params }) {
     </>
   );
 }
+
