@@ -4,10 +4,26 @@ import BlogCategoryTabs from './BlogCategoryTabs.js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SITE_URL = 'https://www.ssagesage.com';
+const SITE_NAME = '싸게사게';
 
 export const metadata = {
   title: '정보모음 | 싸게사게',
-  description: '알뜰 쇼핑 꿀팁, 핫딜 활용법, 가격 비교 가이드 등 유용한 정보를 제공합니다.',
+  description: '핫딜 활용법, 가격 비교 가이드, 절약 꿀팁을 모아둔 실전형 블로그입니다.',
+  alternates: { canonical: `${SITE_URL}/blog` },
+  openGraph: {
+    title: `정보모음 | ${SITE_NAME}`,
+    description: '핫딜 활용법과 가격 비교 팁을 빠르게 확인해보세요.',
+    url: `${SITE_URL}/blog`,
+    siteName: SITE_NAME,
+    locale: 'ko_KR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `정보모음 | ${SITE_NAME}`,
+    description: '핫딜 활용법과 가격 비교 팁을 빠르게 확인해보세요.',
+  },
 };
 
 export const revalidate = 60;
@@ -36,15 +52,31 @@ async function getData() {
   return { posts, categories: catsRes.data || [] };
 }
 
+function buildItemListJsonLd(posts = []) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: posts.slice(0, 20).map((post, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${SITE_URL}/blog/${post.slug}`,
+      name: post.title,
+    })),
+  };
+}
+
 export default async function BlogListPage({ searchParams }) {
   const { posts, categories } = await getData();
   const params = await searchParams;
   const initialCategoryName =
     typeof params?.category === 'string' ? params.category : null;
 
+  const listJsonLd = buildItemListJsonLd(posts);
+
   return (
     <div className="max-w-4xl mx-auto bg-[#FAF6F0] min-h-screen">
-      {/* 헤더 */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(listJsonLd) }} />
+
       <header className="sticky top-0 z-30 bg-[#FFF9E6] border-b border-[#E2E8F0]">
         <div className="bg-[#FFF9E6] px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -81,11 +113,10 @@ export default async function BlogListPage({ searchParams }) {
         </nav>
       </header>
 
-      {/* 본문 */}
       <main className="px-4 py-8 md:py-12">
         <header className="mb-10">
           <p className="text-[15px] text-[#64748B] leading-relaxed">
-            스마트한 쇼핑을 위한 유용한 정보를 한눈에 확인하세요
+            절약과 가격비교에 도움이 되는 실전형 가이드를 모았습니다.
           </p>
         </header>
 

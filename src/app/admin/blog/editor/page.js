@@ -41,6 +41,65 @@ const TOOLBAR = [
 
 const EMOJIS = ['📝', '🔥', '💡', '🎉', '🚀', '📦', '🛒', '💰', '⚡', '🎯', '📊', '🔧', '✨', '🌟', '📌', '🏷️'];
 
+const SEO_CHECK_KEYS = [
+  'title',
+  'description',
+  'slug',
+  'content',
+  'headings',
+  'internal-links',
+  'external-links',
+  'images',
+  'alt-length',
+  'alt-duplicate',
+  'alt-filename',
+  'keyword-input',
+  'keyword-title',
+  'keyword-description',
+  'keyword-first-paragraph',
+  'keyword-heading',
+  'tags',
+];
+
+const DEFAULT_SEO_WEIGHTS = Object.freeze({
+  title: 8,
+  description: 8,
+  slug: 6,
+  content: 7,
+  headings: 6,
+  'internal-links': 5,
+  'external-links': 5,
+  images: 6,
+  'alt-length': 5,
+  'alt-duplicate': 4,
+  'alt-filename': 4,
+  'keyword-input': 3,
+  'keyword-title': 8,
+  'keyword-description': 7,
+  'keyword-first-paragraph': 7,
+  'keyword-heading': 6,
+  tags: 3,
+});
+
+function createDefaultSeoWeights() {
+  return { ...DEFAULT_SEO_WEIGHTS };
+}
+
+function normalizeSeoWeights(weightMap) {
+  return SEO_CHECK_KEYS.reduce((acc, key) => {
+    const raw = Number(weightMap?.[key]);
+    const fallback = DEFAULT_SEO_WEIGHTS[key] ?? 1;
+    acc[key] = Number.isFinite(raw) && raw >= 0 ? Math.min(10, Math.round(raw)) : fallback;
+    return acc;
+  }, {});
+}
+
+function getSeoWeightValue(weightMap, key) {
+  const raw = Number(weightMap?.[key]);
+  const fallback = DEFAULT_SEO_WEIGHTS[key] ?? 1;
+  return Number.isFinite(raw) && raw >= 0 ? Math.min(10, Math.round(raw)) : fallback;
+}
+
 function escapeHtml(str = '') {
   return str
     .replace(/&/g, '&amp;')
@@ -113,6 +172,294 @@ function getTextStats(content = '') {
   const readingMinutes = Math.max(1, Math.ceil(words / 220));
 
   return { text, chars, charsNoSpace, words, readingMinutes };
+}
+
+function parseMarkdownAssets(content = '') {
+  const tokenRegex = /!?\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g;
+  const links = [];
+  const images = [];
+
+  for (const match of content.matchAll(tokenRegex)) {
+    const token = match[0] || '';
+    const text = (match[1] || '').trim();
+    const url = (match[2] || '').trim();
+    const caption = (match[3] || '').trim();
+
+    if (!url) continue;
+
+    if (token.startsWith('![')) {
+      images.push({ alt: text, url, caption });
+      continue;
+    }
+
+    const lowerUrl = url.toLowerCase();
+    const isExternal = /^https?:\/\//.test(lowerUrl) || lowerUrl.startsWith('//');
+    const isInternal = !isExternal;
+    links.push({ url, isInternal, isExternal });
+  }
+
+  return { links, images };
+}
+
+function normalizeAltText(value = '') {
+  return value
+    .toLowerCase()
+    .replace(/[-_]+/g, ' ')
+    .replace(/[^a-z0-9가-힣\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getFileBaseName(url = '') {
+  if (!url) return '';
+  try {
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    const segment = cleanUrl.split('/').pop() || '';
+    return decodeURIComponent(segment).replace(/\.[^.]+$/, '').trim();
+  } catch {
+    return url.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '').trim() || '';
+  }
+}
+
+function getLinkStats(links = []) {
+  const internal = links.filter((item) => item.isInternal).length;
+  const external = links.filter((item) => item.isExternal).length;
+  return {
+    total: links.length,
+    internal,
+    external,
+  };
+}
+
+function getImageStats(images = []) {
+  const total = images.length;
+  const altValues = images.map((item) => (item.alt || '').trim());
+  const withAlt = altValues.filter(Boolean).length;
+  const filledAltValues = altValues.filter(Boolean);
+
+  const tooShort = filledAltValues.filter((alt) => alt.length < 8).length;
+  const tooLong = filledAltValues.filter((alt) => alt.length > 125).length;
+
+  const normalizedAltMap = new Map();
+  for (const alt of filledAltValues) {
+    const key = normalizeAltText(alt);
+    if (!key) continue;
+    normalizedAltMap.set(key, (normalizedAltMap.get(key) || 0) + 1);
+  }
+
+  let duplicateAlt = 0;
+  for (const count of normalizedAltMap.values()) {
+    if (count > 1) duplicateAlt += count - 1;
+  }
+
+  const filenameLike = images.filter((item) => {
+    const alt = normalizeAltText(item.alt || '');
+    const fileName = normalizeAltText(getFileBaseName(item.url || ''));
+    return alt && fileName && alt === fileName;
+  }).length;
+
+  return {
+    total,
+    withAlt,
+    tooShort,
+    tooLong,
+    duplicateAlt,
+    filenameLike,
+  };
+}
+
+function extractFirstParagraphText(content = '') {
+  const lines = content.split('\n');
+  const parts = [];
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (parts.length > 0) break;
+      continue;
+    }
+
+    if (/^(#{1,6}\s|```|>|- |\* |\d+\.\s|!\[)/.test(line)) continue;
+    parts.push(line);
+  }
+
+  return removeMarkdown(parts.join(' '));
+}
+
+function getSeoChecks({ title, description, slug, content, textStats, headingList, tags, focusKeyword }) {
+  const normalizedTitle = (title || '').trim();
+  const normalizedDescription = (description || '').trim();
+  const normalizedSlug = (slug || '').trim();
+  const normalizedTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
+  const normalizedFocusKeyword = (focusKeyword || '').trim().toLowerCase();
+
+  const assets = parseMarkdownAssets(content);
+  const linkStats = getLinkStats(assets.links);
+  const imageStats = getImageStats(assets.images);
+  const firstParagraph = extractFirstParagraphText(content).toLowerCase();
+  const headingText = headingList.map((item) => item.text || '').join(' ').toLowerCase();
+
+  const keywordInTitle = normalizedFocusKeyword ? normalizedTitle.toLowerCase().includes(normalizedFocusKeyword) : false;
+  const keywordInDescription = normalizedFocusKeyword ? normalizedDescription.toLowerCase().includes(normalizedFocusKeyword) : false;
+  const keywordInFirstParagraph = normalizedFocusKeyword ? firstParagraph.includes(normalizedFocusKeyword) : false;
+  const keywordInHeading = normalizedFocusKeyword ? headingText.includes(normalizedFocusKeyword) : false;
+
+  const actionByKey = {
+    title: '제목을 20~60자로 맞추고 핵심 키워드를 앞부분에 배치하세요.',
+    description: '설명을 120~160자로 늘리고, 검색자가 얻을 이득을 한 문장으로 넣어주세요.',
+    slug: 'slug는 짧고 명확하게, 공백 없이 하이픈(-)만 사용하세요.',
+    content: `본문이 짧아요. 최소 ${Math.max(220 - textStats.words, 1)}단어 정도 추가해 핵심 정보를 보강하세요.`,
+    headings: `H2/H3를 최소 ${Math.max(2 - headingList.length, 1)}개 더 추가해 문서 구조를 나누세요.`,
+    'internal-links': '내 사이트의 관련 글/페이지로 내부 링크를 1개 이상 추가하세요.',
+    'external-links': '공식 문서, 브랜드 페이지 같은 신뢰 가능한 외부 출처 링크를 1개 이상 추가하세요.',
+    images: '모든 이미지에 alt를 작성하세요. alt는 이미지 내용을 설명하는 짧은 문장이어야 합니다.',
+    'alt-length': 'alt 길이를 8~125자 범위로 맞추세요. 너무 짧거나 긴 alt를 수정하세요.',
+    'alt-duplicate': '같은 alt를 반복하지 말고 이미지마다 다른 설명으로 바꿔주세요.',
+    'alt-filename': '파일명 복붙 대신 실제 장면/의미를 설명하는 alt로 바꿔주세요.',
+    'keyword-input': '포커스 키워드를 1개 지정하세요. 제목/설명/첫문단/헤딩 점검 기준이 됩니다.',
+    'keyword-title': '포커스 키워드를 제목에 자연스럽게 1회 포함하세요.',
+    'keyword-description': '포커스 키워드를 설명(메타 설명)에 1회 포함하세요.',
+    'keyword-first-paragraph': '포커스 키워드를 첫 문단(초반 2~3문장) 안에 포함하세요.',
+    'keyword-heading': 'H2/H3 중 최소 1개에 포커스 키워드(또는 매우 가까운 표현)를 넣으세요.',
+    tags: '태그를 1개 이상 추가해 주제를 명확히 분류하세요.',
+  };
+
+  const priorityByKey = {
+    title: 3,
+    description: 3,
+    slug: 2,
+    content: 3,
+    headings: 2,
+    'internal-links': 2,
+    'external-links': 2,
+    images: 3,
+    'alt-length': 1,
+    'alt-duplicate': 1,
+    'alt-filename': 1,
+    'keyword-input': 3,
+    'keyword-title': 3,
+    'keyword-description': 2,
+    'keyword-first-paragraph': 2,
+    'keyword-heading': 2,
+    tags: 1,
+  };
+
+  return [
+    {
+      key: 'title',
+      label: 'SEO title length',
+      detail: `${normalizedTitle.length} chars (target: 20-60)`,
+      ok: normalizedTitle.length >= 20 && normalizedTitle.length <= 60,
+    },
+    {
+      key: 'description',
+      label: 'Meta description length',
+      detail: `${normalizedDescription.length} chars (target: 120-160)`,
+      ok: normalizedDescription.length >= 120 && normalizedDescription.length <= 160,
+    },
+    {
+      key: 'slug',
+      label: 'Slug quality',
+      detail: normalizedSlug ? `/blog/${normalizedSlug}` : 'Slug is empty',
+      ok: !!normalizedSlug && !/\s/.test(normalizedSlug) && normalizedSlug.length <= 80,
+    },
+    {
+      key: 'content',
+      label: 'Content length',
+      detail: `${textStats.words} words (target: 220+)`,
+      ok: textStats.words >= 220,
+    },
+    {
+      key: 'headings',
+      label: 'Headings (H2~H4)',
+      detail: `${headingList.length} headings`,
+      ok: headingList.length >= 2,
+    },
+    {
+      key: 'internal-links',
+      label: 'Internal links',
+      detail: `${linkStats.internal} internal`,
+      ok: linkStats.internal >= 1,
+    },
+    {
+      key: 'external-links',
+      label: 'External links',
+      detail: `${linkStats.external} external`,
+      ok: linkStats.external >= 1,
+    },
+    {
+      key: 'images',
+      label: 'Image alt coverage',
+      detail: imageStats.total === 0 ? 'No images' : `${imageStats.withAlt}/${imageStats.total} with alt`,
+      ok: imageStats.total > 0 && imageStats.withAlt === imageStats.total,
+    },
+    {
+      key: 'alt-length',
+      label: 'Alt length quality',
+      detail: imageStats.total === 0
+        ? 'No images'
+        : `short ${imageStats.tooShort}, long ${imageStats.tooLong}`,
+      ok: imageStats.total === 0 || (imageStats.tooShort === 0 && imageStats.tooLong === 0),
+    },
+    {
+      key: 'alt-duplicate',
+      label: 'Alt duplicate check',
+      detail: imageStats.total === 0 ? 'No images' : `${imageStats.duplicateAlt} duplicates`,
+      ok: imageStats.total === 0 || imageStats.duplicateAlt === 0,
+    },
+    {
+      key: 'alt-filename',
+      label: 'Alt filename check',
+      detail: imageStats.total === 0 ? 'No images' : `${imageStats.filenameLike} filename-like alts`,
+      ok: imageStats.total === 0 || imageStats.filenameLike === 0,
+    },
+    {
+      key: 'keyword-input',
+      label: 'Focus keyword',
+      detail: normalizedFocusKeyword ? `"${focusKeyword}"` : 'Not set',
+      ok: normalizedFocusKeyword.length > 0,
+    },
+    {
+      key: 'keyword-title',
+      label: 'Keyword in title',
+      detail: keywordInTitle ? 'Included' : 'Missing',
+      ok: !normalizedFocusKeyword || keywordInTitle,
+    },
+    {
+      key: 'keyword-description',
+      label: 'Keyword in description',
+      detail: keywordInDescription ? 'Included' : 'Missing',
+      ok: !normalizedFocusKeyword || keywordInDescription,
+    },
+    {
+      key: 'keyword-first-paragraph',
+      label: 'Keyword in first paragraph',
+      detail: keywordInFirstParagraph ? 'Included' : 'Missing',
+      ok: !normalizedFocusKeyword || keywordInFirstParagraph,
+    },
+    {
+      key: 'keyword-heading',
+      label: 'Keyword in headings',
+      detail: keywordInHeading ? 'Included' : 'Missing',
+      ok: !normalizedFocusKeyword || keywordInHeading,
+    },
+    {
+      key: 'tags',
+      label: 'Tags',
+      detail: `${normalizedTags.length} tags`,
+      ok: normalizedTags.length > 0,
+    },
+  ].map((item) => ({
+    ...item,
+    action: actionByKey[item.key] || '해당 항목을 보완해주세요.',
+    priority: priorityByKey[item.key] || 1,
+  }));
+}
+
+function getSeoSignalInfo(score) {
+  if (score >= 80) return { label: 'GREEN', dot: 'bg-green-500', text: 'text-green-700', ring: 'ring-green-100' };
+  if (score >= 60) return { label: 'AMBER', dot: 'bg-amber-500', text: 'text-amber-700', ring: 'ring-amber-100' };
+  return { label: 'RED', dot: 'bg-red-500', text: 'text-red-700', ring: 'ring-red-100' };
 }
 
 function formatInline(text = '') {
@@ -293,6 +640,8 @@ function buildSnapshot(form) {
     thumbnailUrl: form.thumbnailUrl || '',
     ogImageUrl: form.ogImageUrl || '',
     tags: Array.isArray(form.tags) ? form.tags : [],
+    focusKeyword: form.focusKeyword || '',
+    seoWeights: normalizeSeoWeights(form.seoWeights),
   });
 }
 
@@ -351,6 +700,8 @@ function BlogEditorInner() {
   const [ogImageUrl, setOgImageUrl] = useState('');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [focusKeyword, setFocusKeyword] = useState('');
+  const [seoWeights, setSeoWeights] = useState(() => createDefaultSeoWeights());
 
   const [showEmoji, setShowEmoji] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -376,6 +727,25 @@ function BlogEditorInner() {
 
   const textStats = useMemo(() => getTextStats(content), [content]);
   const headingList = useMemo(() => extractHeadings(content), [content]);
+  const seoChecks = useMemo(
+    () => getSeoChecks({ title, description, slug, content, textStats, headingList, tags, focusKeyword }),
+    [title, description, slug, content, textStats, headingList, tags, focusKeyword]
+  );
+  const seoScore = useMemo(() => {
+    if (!seoChecks.length) return 0;
+    const weightedTotal = seoChecks.reduce((sum, item) => sum + getSeoWeightValue(seoWeights, item.key), 0);
+    if (weightedTotal <= 0) return 0;
+    const weightedPassed = seoChecks.reduce(
+      (sum, item) => (item.ok ? sum + getSeoWeightValue(seoWeights, item.key) : sum),
+      0
+    );
+    return Math.round((weightedPassed / weightedTotal) * 100);
+  }, [seoChecks, seoWeights]);
+  const seoSignal = useMemo(() => getSeoSignalInfo(seoScore), [seoScore]);
+  const failedSeoChecks = useMemo(
+    () => [...seoChecks.filter((item) => !item.ok)].sort((a, b) => (b.priority || 0) - (a.priority || 0)),
+    [seoChecks]
+  );
   const currentStatus = useMemo(() => getDerivedStatus({ published, scheduledAt: scheduleEnabled ? scheduledAt : '' }), [published, scheduledAt, scheduleEnabled]);
 
   const currentSnapshot = useMemo(() => {
@@ -391,8 +761,10 @@ function BlogEditorInner() {
       thumbnailUrl,
       ogImageUrl,
       tags,
+      focusKeyword,
+      seoWeights,
     });
-  }, [title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags]);
+  }, [title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -424,6 +796,8 @@ function BlogEditorInner() {
         thumbnailUrl: '',
         ogImageUrl: '',
         tags: [],
+        focusKeyword: '',
+        seoWeights: createDefaultSeoWeights(),
         slugManual: false,
       };
 
@@ -452,6 +826,12 @@ function BlogEditorInner() {
               : typeof post.tags === 'string'
                 ? post.tags.split(',').map((item) => item.trim()).filter(Boolean)
                 : [],
+            focusKeyword: Array.isArray(post.tags)
+              ? (post.tags[0] || '')
+              : typeof post.tags === 'string'
+                ? (post.tags.split(',').map((item) => item.trim()).filter(Boolean)[0] || '')
+                : '',
+            seoWeights: createDefaultSeoWeights(),
             slugManual: true,
           };
         }
@@ -492,6 +872,8 @@ function BlogEditorInner() {
       setThumbnailUrl(form.thumbnailUrl);
       setOgImageUrl(form.ogImageUrl);
       setTags(form.tags);
+      setFocusKeyword(form.focusKeyword || '');
+      setSeoWeights(normalizeSeoWeights(form.seoWeights));
       setSlugManual(form.slugManual);
 
       const snapshot = buildSnapshot(form);
@@ -525,6 +907,8 @@ function BlogEditorInner() {
             thumbnailUrl,
             ogImageUrl,
             tags,
+            focusKeyword,
+            seoWeights,
           },
           savedAt: Date.now(),
         };
@@ -539,7 +923,7 @@ function BlogEditorInner() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, draftKey]);
+  }, [autosaveReady, loading, title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -632,11 +1016,24 @@ function BlogEditorInner() {
     if (!cleaned) return;
     if (tags.includes(cleaned)) return;
     setTags((prev) => [...prev, cleaned].slice(0, 10));
+    if (!focusKeyword.trim()) setFocusKeyword(cleaned);
     setTagInput('');
   }
 
   function removeTag(tag) {
     setTags((prev) => prev.filter((item) => item !== tag));
+  }
+
+  function updateSeoWeight(key, value) {
+    const parsed = Number(value);
+    setSeoWeights((prev) => ({
+      ...prev,
+      [key]: Number.isFinite(parsed) && parsed >= 0 ? Math.min(10, Math.round(parsed)) : 0,
+    }));
+  }
+
+  function resetSeoWeights() {
+    setSeoWeights(createDefaultSeoWeights());
   }
 
   function normalizeTagsForDb() {
@@ -929,6 +1326,8 @@ function BlogEditorInner() {
       thumbnailUrl,
       ogImageUrl,
       tags,
+      focusKeyword,
+      seoWeights,
     });
 
     setInitialSnapshot(snapshot);
@@ -1275,6 +1674,18 @@ function BlogEditorInner() {
                 ))
               )}
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-gray-500">Focus keyword</label>
+              <input
+                type="text"
+                value={focusKeyword}
+                onChange={(e) => setFocusKeyword(e.target.value)}
+                placeholder="Example: wireless earbuds discount"
+                className="text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
+              />
+              <span className="text-[11px] text-gray-400">SEO signal checks title, description, first paragraph, and headings against this keyword.</span>
+            </div>
           </div>
         </div>
 
@@ -1472,14 +1883,79 @@ function BlogEditorInner() {
             <div className="text-sm text-gray-600">예상 읽는 시간: <span className="font-bold text-gray-900">{textStats.readingMinutes}분</span></div>
           </div>
 
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-2">
-            <h3 className="text-sm font-bold text-gray-800">작성 가이드</h3>
-            <div className="text-sm text-gray-600">• 제목은 60자 안쪽이면 좋아요.</div>
-            <div className="text-sm text-gray-600">• 설명은 120~160자가 적당해요.</div>
-            <div className="text-sm text-gray-600">• 대표 이미지와 태그가 있으면 공유 품질이 좋아져요.</div>
-            <div className="text-sm text-gray-600">• 저장하지 않아도 자동 임시저장돼요.</div>
-          </div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-bold text-gray-800">SEO Signal</h3>
+              <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold ring-2 ${seoSignal.ring} ${seoSignal.text}`}>
+                <span className={`h-2.5 w-2.5 rounded-full ${seoSignal.dot}`} />
+                {seoSignal.label} {seoScore} pts
+              </div>
+            </div>
 
+            <div className="flex flex-col gap-2">
+              {seoChecks.map((item) => (
+                <div key={item.key} className="flex items-start gap-3 text-sm">
+                  <span className={`mt-1 h-2.5 w-2.5 rounded-full ${item.ok ? 'bg-green-500' : 'bg-red-400'}`} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className={`font-semibold ${item.ok ? 'text-green-700' : 'text-gray-700'}`}>{item.label}</div>
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-500">
+                        W {getSeoWeightValue(seoWeights, item.key)}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500">{item.detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+              <div className="text-xs font-bold text-gray-700 mb-2">현재 부족한 점 진단</div>
+              {failedSeoChecks.length === 0 ? (
+                <div className="text-xs text-green-700 font-semibold">좋아요. 현재 기준에서 보완 필요 항목이 없습니다.</div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {failedSeoChecks.slice(0, 6).map((item) => (
+                    <div key={`guide-${item.key}`} className="rounded-lg bg-white border border-gray-100 px-2.5 py-2">
+                      <div className="text-[12px] font-semibold text-gray-800">{item.label}</div>
+                      <div className="text-[11px] text-gray-500">현재: {item.detail}</div>
+                      <div className="text-[11px] text-blue-700 mt-0.5">개선: {item.action}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-xs font-bold text-gray-600">Score weights</h4>
+                <button
+                  type="button"
+                  onClick={resetSeoWeights}
+                  className="rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-bold text-gray-600 hover:bg-gray-200"
+                >
+                  Reset
+                </button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {seoChecks.map((item) => (
+                  <label key={`weight-${item.key}`} className="flex items-center justify-between gap-2 rounded-lg border border-gray-100 bg-gray-50 px-2 py-1.5">
+                    <span className="truncate text-[11px] text-gray-600">{item.label}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={getSeoWeightValue(seoWeights, item.key)}
+                      onChange={(e) => updateSeoWeight(item.key, e.target.value)}
+                      className="w-12 rounded-md border border-gray-200 bg-white px-1.5 py-1 text-right text-[11px] font-bold text-gray-700"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-2 text-[10px] text-gray-400">Set weight to 0 to exclude that item from score.</div>
+            </div>
+          </div>
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
             <h3 className="text-sm font-bold text-gray-800">빠른 액션</h3>
             <button onClick={() => handleSave('save-draft')} disabled={saving} className="w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50">임시저장</button>
