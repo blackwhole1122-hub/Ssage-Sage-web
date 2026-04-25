@@ -5,13 +5,31 @@ import Link from 'next/link';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-function markdownToHtml(md) {
-  let html = md;
+function escapeHtml(str = '') {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderMarkdownImageFigure(alt = '', src = '', caption = '') {
+  const safeAlt = escapeHtml(alt);
+  const safeSrc = escapeHtml(src);
+  const safeCaption = escapeHtml(caption || '');
+  return `<figure class="md-figure"><img src="${safeSrc}" alt="${safeAlt}" class="md-img" loading="lazy" />${safeCaption ? `<figcaption class="md-figcaption">${safeCaption}</figcaption>` : ''}</figure>`;
+}
+
+function markdownToHtml(md = '') {
+  let html = md || '';
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
     return `<pre class="md-codeblock"><code class="language-${lang}">${code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</code></pre>`;
   });
   html = html.replace(/`([^`]+)`/g, '<code class="md-inline-code">$1</code>');
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="md-img" loading="lazy" />');
+  html = html.replace(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/gm, (_m, alt, src, caption = '') => {
+    return renderMarkdownImageFigure(alt, src, caption);
+  });
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="md-link" target="_blank" rel="noopener noreferrer">$1</a>');
   html = html.replace(/^### (.+)$/gm, '<h3 class="md-h3">$1</h3>');
   html = html.replace(/^## (.+)$/gm, '<h2 class="md-h2">$1</h2>');
@@ -26,7 +44,7 @@ function markdownToHtml(md) {
   html = html.split('\n\n').map(block => {
     const t = block.trim();
     if (!t) return '';
-    if (/^<(h[1-6]|pre|ul|blockquote|hr|img)/.test(t)) return t;
+    if (/^<(h[1-6]|pre|ul|blockquote|hr|figure)/.test(t)) return t;
     return `<p class="md-p">${t.replace(/\n/g, '<br />')}</p>`;
   }).join('\n');
   return html;
@@ -129,7 +147,9 @@ export default async function BlogPostPage({ params }) {
           [&_.md-h3]:text-[17px] [&_.md-h3]:font-semibold [&_.md-h3]:mt-6 [&_.md-h3]:mb-2 [&_.md-h3]:text-[#1E293B]
           [&_.md-p]:text-[#1E293B] [&_.md-p]:leading-[1.9] [&_.md-p]:mb-5 [&_.md-p]:text-[15px]
           [&_.md-link]:text-[#0ABAB5] [&_.md-link]:underline [&_.md-link]:underline-offset-2
+          [&_.md-figure]:my-6
           [&_.md-img]:rounded-xl [&_.md-img]:my-6 [&_.md-img]:max-w-full
+          [&_.md-figcaption]:mt-2 [&_.md-figcaption]:text-center [&_.md-figcaption]:text-[13px] [&_.md-figcaption]:text-[#64748B]
           [&_.md-quote]:border-l-4 [&_.md-quote]:border-[#0ABAB5] [&_.md-quote]:pl-5 [&_.md-quote]:text-[#64748B] [&_.md-quote]:italic [&_.md-quote]:my-6 [&_.md-quote]:bg-[#E6FAF9] [&_.md-quote]:py-3 [&_.md-quote]:pr-4 [&_.md-quote]:rounded-r-lg
           [&_.md-ul]:list-disc [&_.md-ul]:pl-6 [&_.md-ul]:my-5
           [&_.md-li]:text-[#1E293B] [&_.md-li]:mb-2 [&_.md-li]:leading-[1.8]

@@ -117,12 +117,33 @@ function getTextStats(content = '') {
 
 function formatInline(text = '') {
   return escapeHtml(text)
-    .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img alt="$1" src="$2" data-preview-src="$2" class="preview-image my-4 max-w-full rounded-2xl cursor-zoom-in border border-gray-200" />')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline break-all">$1 ↗</a>')
+    .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, '<img alt="$1" src="$2" data-preview-src="$2" class="preview-image my-4 max-w-full rounded-2xl cursor-zoom-in border border-gray-200" />')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline break-all">$1</a>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/~~(.+?)~~/g, '<del>$1</del>')
     .replace(/`(.+?)`/g, '<code class="rounded bg-gray-100 px-1.5 py-0.5 text-[0.9em]">$1</code>');
+}
+
+function parseMarkdownImageLine(line = '') {
+  const match = line.trim().match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/);
+  if (!match) return null;
+
+  return {
+    alt: match[1] || '',
+    src: match[2] || '',
+    caption: match[3] || '',
+  };
+}
+
+function renderImageFigure({ alt, src, caption }) {
+  const safeAlt = escapeHtml(alt || '');
+  const safeSrc = escapeHtml(src || '');
+  const safeCaption = escapeHtml(caption || '');
+
+  return `
+    <figure class="my-6">\n      <img alt="${safeAlt}" src="${safeSrc}" data-preview-src="${safeSrc}" class="preview-image w-full max-w-full rounded-2xl cursor-zoom-in border border-gray-200" />\n      ${safeCaption ? `<figcaption class="mt-2 text-center text-sm text-gray-500">${safeCaption}</figcaption>` : ''}\n    </figure>
+  `;
 }
 
 function renderTable(block) {
@@ -184,6 +205,14 @@ function markdownToHtml(md = '') {
     if (codeMatch) return codeBlocks[Number(codeMatch[1])];
 
     if (block === '---') return '<hr class="my-6 border-gray-200" />';
+
+    const imageLines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+    if (imageLines.length > 0) {
+      const parsedImages = imageLines.map(parseMarkdownImageLine);
+      if (parsedImages.every(Boolean)) {
+        return parsedImages.map((image) => renderImageFigure(image)).join('');
+      }
+    }
 
     if (/^#{1,6}\s/.test(block)) {
       const level = Math.min(6, (block.match(/^#+/)?.[0].length || 1));
@@ -338,6 +367,10 @@ function BlogEditorInner() {
   const [autosavedAt, setAutosavedAt] = useState(null);
   const [previewToast, setPreviewToast] = useState('');
   const [lightboxImage, setLightboxImage] = useState('');
+  const [imageDialogOpen, setImageDialogOpen] = useState(false);
+  const [pendingContentImage, setPendingContentImage] = useState(null);
+  const [imageAltInput, setImageAltInput] = useState('');
+  const [imageCaptionInput, setImageCaptionInput] = useState('');
 
   const draftKey = useMemo(() => `blog-editor-draft:${editId || 'new'}`, [editId]);
 
@@ -683,19 +716,51 @@ function BlogEditorInner() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const defaultAlt = file.name.replace(/\.[^.]+$/, '').trim() || '이미지';
+    setPendingContentImage(file);
+    setImageAltInput(defaultAlt);
+    setImageCaptionInput('');
+    setImageDialogOpen(true);
+
+    if (e.target) e.target.value = '';
+  }
+
+  function closeImageDialog() {
+    if (uploading) return;
+    setImageDialogOpen(false);
+    setPendingContentImage(null);
+    setImageAltInput('');
+    setImageCaptionInput('');
+  }
+
+  function buildImageMarkdown(alt, src, caption = '') {
+    const safeAlt = String(alt || '').replace(/\]/g, '\\]').trim();
+    const safeCaption = String(caption || '').replace(/"/g, '\\"').trim();
+    const titlePart = safeCaption ? ` "${safeCaption}"` : '';
+    return `\n![${safeAlt}](${src}${titlePart})\n`;
+  }
+
+  async function confirmContentImageInsert() {
+    if (!pendingContentImage) return;
+
+    if (!imageAltInput.trim()) {
+      alert('alt 텍스트를 입력해 주세요.');
+      return;
+    }
+
     const ta = textareaRef.current;
     const currentScrollPos = ta?.scrollTop || 0;
 
     try {
       setUploading(true);
-      const publicUrl = await uploadImageFile(file);
-      const imgMd = `\n![이미지](${publicUrl})\n`;
+      const publicUrl = await uploadImageFile(pendingContentImage);
+      const imgMd = buildImageMarkdown(imageAltInput, publicUrl, imageCaptionInput);
       setContent((prev) => prev + imgMd);
+      closeImageDialog();
     } catch (error) {
       alert('업로드 실패: ' + error.message);
     } finally {
       setUploading(false);
-      if (e.target) e.target.value = '';
 
       setTimeout(() => {
         if (ta) {
@@ -869,6 +934,7 @@ function BlogEditorInner() {
     setInitialSnapshot(snapshot);
     setSaved(true);
     setAutosavedAt(null);
+    triggerSitemapRevalidate(slug.trim());
 
     setTimeout(() => {
       setSaved(false);
@@ -896,6 +962,7 @@ function BlogEditorInner() {
       console.error(error);
     }
 
+    triggerSitemapRevalidate(slug.trim());
     router.push('/admin/blog');
   }
 
@@ -935,10 +1002,25 @@ function BlogEditorInner() {
 
   function handleBack() {
     if (isDirty) {
-      const confirmed = window.confirm('저장하지 않은 변경사항이 있어요. 정말 나갈까요?');
+      const confirmed = window.confirm('You have unsaved changes. Do you want to leave this page?');
       if (!confirmed) return;
     }
     router.push('/admin/blog');
+  }
+
+  async function triggerSitemapRevalidate(targetSlug = '') {
+    const paths = ['/sitemap.xml', '/blog'];
+    if (targetSlug) paths.push(`/blog/${targetSlug}`);
+
+    try {
+      await fetch('/api/revalidate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths }),
+      });
+    } catch (error) {
+      console.error('sitemap revalidate failed:', error);
+    }
   }
 
   function handlePreviewClick(e) {
@@ -1408,6 +1490,62 @@ function BlogEditorInner() {
           </div>
         </div>
       </main>
+
+      {imageDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4"
+          onClick={closeImageDialog}
+        >
+          <div
+            className="w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-gray-900">이미지 설명 입력</h3>
+            <p className="mt-1 text-xs text-gray-500">alt 텍스트는 필수, 캡션은 선택입니다.</p>
+
+            <div className="mt-4 space-y-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600">alt 텍스트 (필수)</label>
+                <input
+                  type="text"
+                  value={imageAltInput}
+                  onChange={(e) => setImageAltInput(e.target.value)}
+                  placeholder="예: 무선 이어폰 제품 박스 사진"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-gray-600">캡션 (선택)</label>
+                <input
+                  type="text"
+                  value={imageCaptionInput}
+                  onChange={(e) => setImageCaptionInput(e.target.value)}
+                  placeholder="예: 2026년 4월 할인 행사 대표 이미지"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button
+                onClick={closeImageDialog}
+                disabled={uploading}
+                className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-60"
+              >
+                취소
+              </button>
+              <button
+                onClick={confirmContentImageInsert}
+                disabled={uploading || !imageAltInput.trim()}
+                className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-60"
+              >
+                {uploading ? '업로드 중...' : '삽입'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {lightboxImage && (
         <div

@@ -1,6 +1,8 @@
 // src/app/sitemap.js
 import { createClient } from '@supabase/supabase-js';
 
+export const revalidate = 60;
+
 export default async function sitemap() {
   const baseUrl = 'https://www.ssagesage.com';
   const supabase = createClient(
