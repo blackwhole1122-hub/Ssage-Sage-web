@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
 import { buildExternalRel } from '@/lib/linkRel';
+import { encodeBlogShortSlug } from '@/lib/shortLinks';
+import BlogShareButton from './BlogShareButton';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -291,6 +293,7 @@ export default async function BlogPostPage({ params }) {
   const image = getPreferredPostImage(post);
   const keywords = Array.isArray(post.tags) ? post.tags.filter(Boolean) : [];
   const relatedPosts = await getRelatedPosts(post);
+  const shortSlug = encodeBlogShortSlug(post.id);
   const wordCount = removeMarkdown(post.content || '').split(/\s+/).filter(Boolean).length;
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
@@ -384,9 +387,12 @@ export default async function BlogPostPage({ params }) {
               {categoryName}
             </span>
           )}
-          <h1 className="text-[24px] md:text-[28px] font-bold text-[#1E293B] leading-tight mb-4">
-            {post.title}
-          </h1>
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <h1 className="text-[24px] md:text-[28px] font-bold text-[#1E293B] leading-tight">
+              {post.title}
+            </h1>
+            <BlogShareButton shortSlug={shortSlug} />
+          </div>
           {post.description && (
             <p className="text-[15px] text-[#64748B] leading-relaxed mb-4">{post.description}</p>
           )}

@@ -4,6 +4,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { detectPageType, getOrCreateSessionId, resolveAttribution, sendAnalyticsEvent } from '@/lib/clientAnalytics';
 
 function SearchPageInner() {
   const searchParams = useSearchParams();
@@ -79,6 +80,27 @@ function SearchPageInner() {
     searchAllDeals();
   }, [query]);
 
+  useEffect(() => {
+    if (!query || loading) return;
+    const attr = resolveAttribution('/search', typeof window !== 'undefined' ? window.location.search : '');
+    sendAnalyticsEvent({
+      eventName: 'search_result',
+      sessionId: getOrCreateSessionId(),
+      pagePath: '/search',
+      pageType: detectPageType('/search'),
+      source: attr.source,
+      medium: attr.medium,
+      campaign: attr.campaign,
+      referrer: attr.referrer,
+      shortSlug: attr.shortSlug,
+      searchQuery: query,
+      metadata: {
+        resultsCount: results.length,
+        noResults: results.length === 0,
+      },
+    });
+  }, [query, loading, results.length]);
+
   return (
     <div className="min-h-screen bg-[#FAF6F0]">
       {/* 상단 네비 */}
@@ -116,6 +138,25 @@ function SearchPageInner() {
               <Link 
                 key={`${deal.type}-${deal.id}-${idx}`} 
                 href={deal.link}
+                onClick={() => {
+                  const attr = resolveAttribution('/search', typeof window !== 'undefined' ? window.location.search : '');
+                  sendAnalyticsEvent({
+                    eventName: 'search_click',
+                    sessionId: getOrCreateSessionId(),
+                    pagePath: '/search',
+                    pageType: detectPageType('/search'),
+                    targetUrl: deal.link,
+                    source: attr.source,
+                    medium: attr.medium,
+                    campaign: attr.campaign,
+                    referrer: attr.referrer,
+                    shortSlug: attr.shortSlug,
+                    searchQuery: query,
+                    metadata: {
+                      resultType: deal.type,
+                    },
+                  });
+                }}
                 className="bg-white rounded-2xl border overflow-hidden hover:border-[#0ABAB5] transition-all flex"
               >
                 <div className="relative w-32 h-32 flex-shrink-0">
