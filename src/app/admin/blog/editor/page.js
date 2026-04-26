@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { buildExternalRel } from '@/lib/linkRel';
 
 /*
   선택 기능(DB 저장까지 하려면 blog_posts에 아래 컬럼이 있으면 가장 좋습니다)
@@ -465,7 +466,10 @@ function getSeoSignalInfo(score) {
 function formatInline(text = '') {
   return escapeHtml(text)
     .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)/g, '<img alt="$1" src="$2" data-preview-src="$2" class="preview-image my-4 max-w-full rounded-2xl cursor-zoom-in border border-gray-200" />')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline break-all">$1</a>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, linkText, href) => {
+      const rel = buildExternalRel(href);
+      return `<a href="${href}" target="_blank" rel="${rel}" class="text-blue-600 underline break-all">${linkText}</a>`;
+    })
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
     .replace(/~~(.+?)~~/g, '<del>$1</del>')

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
+import { buildExternalRel } from '@/lib/linkRel';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -107,7 +108,8 @@ function markdownToHtml(md = '') {
     const safeHref = escapeHtml(href || '');
     const safeText = escapeHtml(text || '');
     if (isExternalHref(href)) {
-      return `<a href="${safeHref}" class="md-link" target="_blank" rel="noopener noreferrer">${safeText}</a>`;
+      const rel = buildExternalRel(href);
+      return `<a href="${safeHref}" class="md-link" target="_blank" rel="${rel}">${safeText}</a>`;
     }
     return `<a href="${safeHref}" class="md-link">${safeText}</a>`;
   });
