@@ -4,6 +4,28 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// 카테고리별 아이콘 매핑
+const CATEGORY_ICONS = {
+  '생활용품': '🧹',
+  '전자기기': '💻',
+  '쇼핑꿀팁': '🛒',
+  '게임': '🎮',
+  '건강/식품': '🥗',
+  '생활정보': '💡',
+  '반려동물': '🐾',
+};
+
+// 카테고리별 배경색 매핑 (hover 포함)
+const CATEGORY_COLORS = {
+  '생활용품': 'group-hover:bg-blue-50',
+  '전자기기': 'group-hover:bg-purple-50',
+  '쇼핑꿀팁': 'group-hover:bg-orange-50',
+  '게임': 'group-hover:bg-indigo-50',
+  '건강/식품': 'group-hover:bg-green-50',
+  '생활정보': 'group-hover:bg-yellow-50',
+  '반려동물': 'group-hover:bg-amber-50',
+};
+
 export default function BlogCategoryTabs({
   posts,
   categories,
@@ -90,12 +112,15 @@ export default function BlogCategoryTabs({
               setActiveCategoryId(cat.id);
               updateURL(cat.id);
             }}
-            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
+            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeCategoryId === cat.id
                 ? 'bg-[#1E293B] text-white'
                 : 'bg-[#FAF6F0] text-[#64748B] hover:bg-[#F0EAE0] hover:text-[#1E293B]'
             }`}
           >
+            {CATEGORY_ICONS[cat.name] && (
+              <span className="text-[14px] leading-none">{CATEGORY_ICONS[cat.name]}</span>
+            )}
             {cat.name}
           </button>
         ))}
@@ -104,29 +129,34 @@ export default function BlogCategoryTabs({
       {/* 블로그 글 목록 그리드 */}
       {filteredPosts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPosts.map((post) => (
-            <Link
-              key={post.id}
-              href={`/blog/${post.slug}`}
-              className="group bg-white rounded-2xl p-5 border border-[#E2E8F0] hover:border-[#0ABAB5] transition-all duration-200 overflow-hidden flex flex-col deal-card"
-            >
-              <div className="w-12 h-12 flex items-center justify-center bg-[#FAF6F0] rounded-xl text-2xl mb-4 group-hover:bg-[#E6FAF9] transition-colors">
-                {post.emoji || '📝'}
-              </div>
+          {filteredPosts.map((post) => {
+            const category = categories.find((c) => c.id === post.category_id);
+            const icon = post.emoji || CATEGORY_ICONS[category?.name] || '📝';
+            const hoverBg = CATEGORY_COLORS[category?.name] || 'group-hover:bg-[#E6FAF9]';
+            return (
+              <Link
+                key={post.id}
+                href={`/blog/${post.slug}`}
+                className="group bg-white rounded-2xl p-5 border border-[#E2E8F0] hover:border-[#0ABAB5] transition-all duration-200 overflow-hidden flex flex-col deal-card"
+              >
+                <div className={`w-12 h-12 flex items-center justify-center bg-[#FAF6F0] rounded-xl text-2xl mb-4 transition-colors ${hoverBg}`}>
+                  {icon}
+                </div>
 
-              <h2 className="text-[16px] font-bold text-[#1E293B] mb-1.5 group-hover:text-[#0ABAB5] transition-colors line-clamp-1">
-                {post.title}
-              </h2>
+                <h2 className="text-[16px] font-bold text-[#1E293B] mb-1.5 group-hover:text-[#0ABAB5] transition-colors line-clamp-1">
+                  {post.title}
+                </h2>
 
-              <p className="text-[13px] text-[#64748B] line-clamp-2 leading-relaxed mb-4 flex-1">
-                {post.description}
-              </p>
+                <p className="text-[13px] text-[#64748B] line-clamp-2 leading-relaxed mb-4 flex-1">
+                  {post.description}
+                </p>
 
-              <div className="text-[12px] text-[#94A3B8] font-medium pt-3 border-t border-[#E2E8F0]">
-                {postDateFormatter.format(new Date(post.created_at))}
-              </div>
-            </Link>
-          ))}
+                <div className="text-[12px] text-[#94A3B8] font-medium pt-3 border-t border-[#E2E8F0]">
+                  {postDateFormatter.format(new Date(post.created_at))}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       ) : (
         <div className="py-20 text-center bg-white rounded-2xl border border-[#E2E8F0]">
