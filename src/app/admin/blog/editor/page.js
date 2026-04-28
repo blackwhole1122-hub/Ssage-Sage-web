@@ -783,6 +783,9 @@ function BlogEditorInner() {
   const [thumbnailEditorZoom, setThumbnailEditorZoom] = useState(1);
   const [thumbnailEditorOffsetX, setThumbnailEditorOffsetX] = useState(0);
   const [thumbnailEditorOffsetY, setThumbnailEditorOffsetY] = useState(0);
+  const [internalLinkPickerOpen, setInternalLinkPickerOpen] = useState(false);
+  const [internalLinkCategory, setInternalLinkCategory] = useState('all');
+  const [internalLinkSelection, setInternalLinkSelection] = useState({ start: 0, end: 0 });
 
   const draftKey = useMemo(() => `blog-editor-draft:${editId ? `post:${editId}` : draftId || 'new'}`, [draftId, editId]);
 
@@ -808,6 +811,19 @@ function BlogEditorInner() {
     [seoChecks]
   );
   const currentStatus = useMemo(() => getDerivedStatus({ published, scheduledAt: scheduleEnabled ? scheduledAt : '' }), [published, scheduledAt, scheduleEnabled]);
+  const internalLinkPosts = useMemo(() => {
+    const now = new Date();
+    const items = linkablePosts.filter((post) => {
+      if (!post?.slug || !post?.title) return false;
+      if (editId && String(post.id) === String(editId)) return false;
+      if (!post.published) return false;
+      if (post.scheduled_at && new Date(post.scheduled_at) > now) return false;
+      if (internalLinkCategory === 'all') return true;
+      if (internalLinkCategory === 'uncategorized') return !post.category_id;
+      return String(post.category_id || '') === String(internalLinkCategory);
+    });
+    return items.slice(0, 300);
+  }, [editId, internalLinkCategory, linkablePosts]);
 
   const currentSnapshot = useMemo(() => {
     return buildSnapshot({
@@ -846,7 +862,7 @@ function BlogEditorInner() {
           .order('id', { ascending: true }),
         supabase
           .from('blog_posts')
-          .select('id, title, slug, published, scheduled_at')
+          .select('id, title, slug, published, scheduled_at, category_id')
           .order('updated_at', { ascending: false })
           .limit(2000),
       ]);
@@ -1416,50 +1432,31 @@ function BlogEditorInner() {
 
   function insertInternalLink(e) {
     e.preventDefault();
-    const now = new Date();
-    const candidates = linkablePosts.filter((post) => {
-      if (!post?.slug || !post?.title) return false;
-      if (editId && String(post.id) === String(editId)) return false;
-      if (!post.published) return false;
-      if (post.scheduled_at && new Date(post.scheduled_at) > now) return false;
-      return true;
-    });
-
-    if (!candidates.length) {
-      alert('내부 링크로 넣을 게시글이 없습니다.');
-      return;
-    }
-
-    const keyword = window.prompt('연결할 글 제목 키워드를 입력하세요.');
-    if (!keyword) return;
-    const lowered = keyword.toLowerCase();
-    const matched = candidates.filter((post) => String(post.title || '').toLowerCase().includes(lowered)).slice(0, 20);
-
-    if (!matched.length) {
-      alert('일치하는 게시글을 찾지 못했습니다.');
-      return;
-    }
-
-    let picked = matched[0];
-    if (matched.length > 1) {
-      const listText = matched.slice(0, 10).map((post, idx) => `${idx + 1}. ${post.title}`).join('\n');
-      const selected = window.prompt(`여러 글이 검색됐어요. 번호를 입력하세요:\n\n${listText}`, '1');
-      const index = Number(selected) - 1;
-      if (Number.isInteger(index) && index >= 0 && index < Math.min(matched.length, 10)) {
-        picked = matched[index];
-      }
-    }
-
     const ta = textareaRef.current;
     if (!ta) return;
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const selected = content.slice(start, end) || picked.title;
-    const linkMd = `[${selected}](/blog/${picked.slug})`;
-    const newText = content.slice(0, start) + linkMd + content.slice(end);
 
+    const hasCandidate = linkablePosts.some((post) => post?.slug && post?.title);
+    if (!hasCandidate) {
+      alert('연결 가능한 게시글이 없습니다.');
+      return;
+    }
+    setInternalLinkSelection({ start: ta.selectionStart, end: ta.selectionEnd });
+    setInternalLinkCategory('all');
+    setInternalLinkPickerOpen(true);
+  }
+
+  function insertInternalPostLink(post) {
+    if (!post?.slug) return;
+    const ta = textareaRef.current;
+    const start = internalLinkSelection.start ?? 0;
+    const end = internalLinkSelection.end ?? 0;
+    const selected = content.slice(start, end) || post.title;
+    const linkMd = `[${selected}](/blog/${post.slug})`;
+    const newText = content.slice(0, start) + linkMd + content.slice(end);
     setContent(newText);
+    setInternalLinkPickerOpen(false);
     setTimeout(() => {
+      if (!ta) return;
       ta.focus();
       ta.setSelectionRange(start + 1, start + 1 + selected.length);
     }, 0);
@@ -2303,6 +2300,74 @@ function BlogEditorInner() {
           </div>
         </div>
       </main>
+
+      {internalLinkPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4"
+          onClick={() => setInternalLinkPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-gray-900">내부 링크 추가</h3>
+            <p className="mt-1 text-xs text-gray-500">카테고리를 고르고 글 제목을 눌러 링크를 삽입하세요.</p>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                onClick={() => setInternalLinkCategory('all')}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${internalLinkCategory === 'all' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                전체
+              </button>
+              <button
+                onClick={() => setInternalLinkCategory('uncategorized')}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${internalLinkCategory === 'uncategorized' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                미분류
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setInternalLinkCategory(String(cat.id))}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${String(internalLinkCategory) === String(cat.id) ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 max-h-[380px] overflow-y-auto rounded-2xl border border-gray-200">
+              {internalLinkPosts.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-gray-400">해당 카테고리에 링크할 글이 없습니다.</div>
+              ) : (
+                <ul className="divide-y divide-gray-100">
+                  {internalLinkPosts.map((post) => (
+                    <li key={post.id}>
+                      <button
+                        onClick={() => insertInternalPostLink(post)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50"
+                      >
+                        <div className="text-sm font-semibold text-gray-800">{post.title}</div>
+                        <div className="mt-1 text-[11px] text-gray-400">/blog/{post.slug}</div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setInternalLinkPickerOpen(false)}
+                className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {thumbnailEditorOpen && thumbnailUrl && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4" onClick={() => setThumbnailEditorOpen(false)}>
