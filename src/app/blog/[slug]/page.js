@@ -148,6 +148,17 @@ function markdownToHtml(md = '') {
     return renderMarkdownImageFigure(alt, src, caption, width);
   });
   html = html.replace(/((?:^\|.*\|\s*$\n?){2,})/gm, (tableBlock) => renderMarkdownTable(tableBlock));
+  html = html.replace(/:::startbox(?:\[(.*?)\])?\n([\s\S]*?)\n:::/g, (_m, title = '', body = '') => {
+    const safeTitle = escapeHtml((title || '이 글을 읽으면 알 수 있어요').trim());
+    const items = String(body || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => line.replace(/^[-*]\s+/, ''))
+      .filter(Boolean);
+    if (!items.length) return '';
+    return `<section class="md-startbox"><h3 class="md-startbox-title">${safeTitle}</h3><ul class="md-startbox-list">${items.map((item) => `<li class="md-startbox-item"><span class="md-startbox-check">☑</span><span>${escapeHtml(item)}</span></li>`).join('')}</ul></section>`;
+  });
   html = html.replace(/^\[([^\]]+)\]\(([^)]+)\)\s*$/gm, (_m, text, href) => {
     if (!isCoupangHref(href)) return _m;
     const safeHref = escapeHtml(href || '');
@@ -439,6 +450,11 @@ export default async function BlogPostPage({ params }) {
           [&_.md-link]:text-[#0ABAB5] [&_.md-link]:underline [&_.md-link]:underline-offset-2
           [&_.md-coupang-btn]:inline-flex [&_.md-coupang-btn]:items-center [&_.md-coupang-btn]:justify-center [&_.md-coupang-btn]:rounded-xl [&_.md-coupang-btn]:bg-[#ff6b35] [&_.md-coupang-btn]:px-3 [&_.md-coupang-btn]:py-1.5 [&_.md-coupang-btn]:text-[12px] [&_.md-coupang-btn]:font-bold [&_.md-coupang-btn]:text-white [&_.md-coupang-btn]:no-underline [&_.md-coupang-btn]:shadow-sm [&_.md-coupang-btn]:hover:bg-[#ff5a1f]
           [&_.md-coupang-btn-lg]:my-3 [&_.md-coupang-btn-lg]:w-full [&_.md-coupang-btn-lg]:py-3 [&_.md-coupang-btn-lg]:text-[15px]
+          [&_.md-startbox]:my-6 [&_.md-startbox]:rounded-2xl [&_.md-startbox]:border [&_.md-startbox]:border-emerald-200 [&_.md-startbox]:bg-emerald-50/70 [&_.md-startbox]:px-4 [&_.md-startbox]:py-4
+          [&_.md-startbox-title]:mb-2 [&_.md-startbox-title]:text-[15px] [&_.md-startbox-title]:font-bold [&_.md-startbox-title]:text-emerald-800
+          [&_.md-startbox-list]:space-y-1.5
+          [&_.md-startbox-item]:flex [&_.md-startbox-item]:items-start [&_.md-startbox-item]:gap-2 [&_.md-startbox-item]:text-[14px] [&_.md-startbox-item]:text-emerald-900
+          [&_.md-startbox-check]:mt-0.5 [&_.md-startbox-check]:text-emerald-600
           [&_.md-figure]:my-6 [&_.md-figure]:flex [&_.md-figure]:flex-col [&_.md-figure]:items-center
           [&_.md-img]:rounded-xl [&_.md-img]:my-2 [&_.md-img]:max-w-full
           [&_.md-figcaption]:mt-2 [&_.md-figcaption]:text-center [&_.md-figcaption]:text-[13px] [&_.md-figcaption]:text-[#64748B]

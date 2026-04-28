@@ -623,6 +623,26 @@ function markdownToHtml(md = '') {
       return renderTable(block);
     }
 
+    const startBoxMatch = block.match(/^:::startbox(?:\[(.*?)\])?\n([\s\S]*?)\n:::$/);
+    if (startBoxMatch) {
+      const title = (startBoxMatch[1] || '이 글을 읽으면 알 수 있어요').trim();
+      const body = startBoxMatch[2] || '';
+      const lines = body
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const items = lines.map((line) => line.replace(/^[-*]\s+/, '')).filter(Boolean);
+      if (!items.length) return '';
+      return `
+        <section class="my-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-4">
+          <h3 class="mb-2 text-[15px] font-bold text-emerald-800">${formatInline(title)}</h3>
+          <ul class="space-y-1.5">
+            ${items.map((item) => `<li class="flex items-start gap-2 text-[14px] text-emerald-900"><span class="mt-0.5 text-emerald-600">☑</span><span>${formatInline(item)}</span></li>`).join('')}
+          </ul>
+        </section>
+      `;
+    }
+
     const checklistLines = block.split('\n');
     if (checklistLines.every((line) => /^- \[( |x)\] /.test(line.trim()))) {
       return `
@@ -1640,6 +1660,17 @@ function BlogEditorInner() {
     setContent(next);
   }
 
+  function insertStartBox(e) {
+    e.preventDefault();
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const block = '\n:::startbox[이 글을 읽으면 알 수 있어요]\n- 핵심 포인트 1\n- 핵심 포인트 2\n- 핵심 포인트 3\n:::\n';
+    const next = content.slice(0, start) + block + content.slice(end);
+    setContent(next);
+  }
+
   async function handleDelete() {
     if (!editId) return;
     const confirmed = window.confirm('정말 이 글을 삭제할까요? 삭제 후 복구하기 어려워요.');
@@ -2126,6 +2157,7 @@ function BlogEditorInner() {
                 <button onClick={insertFontSize} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 크기</button>
                 <button onClick={insertLongDivider} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">긴 줄</button>
                 <button onClick={insertHtmlTable} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">HTML 표</button>
+                <button onClick={insertStartBox} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">시작박스</button>
                 <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">
                   🖼️ {uploading ? '업로드 중...' : '이미지'}
                 </button>
