@@ -876,7 +876,7 @@ function BlogEditorInner() {
             ogImageUrl: unifiedThumb,
             tags: parseStoredTags(post.tags),
             affiliateDisclosure: !!post.affiliate_disclosure,
-            focusKeyword: parseStoredTags(post.tags)[0] || '',
+            focusKeyword: String(post.focus_keyword || parseStoredTags(post.tags)[0] || ''),
             seoWeights: createDefaultSeoWeights(),
             slugManual: true,
           };
@@ -1120,6 +1120,7 @@ function BlogEditorInner() {
       thumbnail_url: thumbnailUrl.trim() || null,
       og_image_url: thumbnailUrl.trim() || null,
       tags: normalizeTagsForDb(),
+      focus_keyword: focusKeyword.trim() || null,
       affiliate_disclosure: forcedAffiliate === undefined ? !!affiliateDisclosure : !!forcedAffiliate,
     };
   }
@@ -1133,6 +1134,7 @@ function BlogEditorInner() {
       message.includes('thumbnail_url') ||
       message.includes('og_image_url') ||
       message.includes('tags') ||
+      message.includes('focus_keyword') ||
       message.includes('affiliate_disclosure')
     );
   }
