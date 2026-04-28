@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -50,7 +50,9 @@ export default function AdminAnalyticsPage() {
 
   useEffect(() => {
     const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         router.push('/admin');
         return;
@@ -84,7 +86,7 @@ export default function AdminAnalyticsPage() {
       } catch (e) {
         const msg = String(e?.message || e || '');
         if (msg.includes('analytics_events')) {
-          setError('analytics_events 테이블이 아직 없어 보입니다. 아래 SQL 파일을 먼저 실행해 주세요: scripts/sql/analytics_events.sql');
+          setError('analytics_events 테이블이 아직 없어 보입니다. scripts/sql/analytics_events.sql 을 먼저 실행해주세요.');
         } else {
           setError(msg || '유입분석 로딩 실패');
         }
@@ -103,7 +105,6 @@ export default function AdminAnalyticsPage() {
     const coupangClicks = events.filter((e) => e.event_name === 'coupang_click');
     const shortLinkClicks = events.filter((e) => e.event_name === 'short_link_click');
     const internalClicks = events.filter((e) => e.event_name === 'internal_click');
-    const productClicks = events.filter((e) => e.event_name === 'product_click');
     const searchResults = events.filter((e) => e.event_name === 'search_result');
     const searchClicks = events.filter((e) => e.event_name === 'search_click');
 
@@ -133,6 +134,9 @@ export default function AdminAnalyticsPage() {
         clicks: dayCoupangClicks.length,
       });
     }
+
+    const weeklyVisitors = trend.reduce((sum, item) => sum + item.visitors, 0);
+    const weeklyClicks = trend.reduce((sum, item) => sum + item.clicks, 0);
 
     const sourceMediumMap = {};
     const referrerMap = {};
@@ -240,6 +244,8 @@ export default function AdminAnalyticsPage() {
       todayVisitors: todayVisitorsSet.size,
       todayCoupangClickCount,
       trend,
+      weeklyVisitors,
+      weeklyClicks,
       totalCtr: percent(coupangClicks.length, pageViews.length),
       sourceMedium: topEntries(sourceMediumMap),
       referrers: topEntries(referrerMap),
@@ -285,40 +291,74 @@ export default function AdminAnalyticsPage() {
           </section>
         )}
 
-        <section className={cardClass}>
-          <h2 className="mb-3 text-sm font-bold text-gray-700">유입분석 아이콘</h2>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <div className="rounded-2xl bg-gray-50 p-3"><div className="text-gray-500">오늘 방문자</div><div className="text-xl font-black text-gray-900">{analytics.todayVisitors}</div></div>
-            <div className="rounded-2xl bg-gray-50 p-3"><div className="text-gray-500">오늘 쿠팡 클릭</div><div className="text-xl font-black text-orange-500">{analytics.todayCoupangClickCount}</div></div>
-            <div className="rounded-2xl bg-gray-50 p-3"><div className="text-gray-500">전체 CTR</div><div className="text-xl font-black text-emerald-600">{analytics.totalCtr}%</div></div>
-            <div className="rounded-2xl bg-gray-50 p-3"><div className="text-gray-500">내부 이동률</div><div className="text-xl font-black text-blue-600">{analytics.internalMoveRate}%</div></div>
-          </div>
-          <div className="mt-4">
-            <div className="mb-2 text-xs font-semibold text-gray-500">최근 7일 추이</div>
-            <div className="space-y-1 text-xs">
-              {analytics.trend.map((d) => (
-                <div key={d.date} className="flex items-center justify-between rounded-lg bg-gray-50 px-2 py-1">
-                  <span>{d.date}</span>
-                  <span>방문 {d.visitors} / 클릭 {d.clicks}</span>
-                </div>
-              ))}
+        <section className={`${cardClass} md:col-span-2`}>
+          <h2 className="mb-3 text-sm font-bold text-gray-700">오늘통계</h2>
+          <div className="grid grid-cols-2 gap-3 text-sm md:grid-cols-4">
+            <div className="rounded-2xl bg-gray-50 p-3">
+              <div className="text-gray-500">오늘 방문자</div>
+              <div className="text-xl font-black text-gray-900">{analytics.todayVisitors}</div>
+            </div>
+            <div className="rounded-2xl bg-gray-50 p-3">
+              <div className="text-gray-500">오늘 쿠팡 클릭</div>
+              <div className="text-xl font-black text-orange-500">{analytics.todayCoupangClickCount}</div>
+            </div>
+            <div className="rounded-2xl bg-gray-50 p-3">
+              <div className="text-gray-500">전체 CTR</div>
+              <div className="text-xl font-black text-emerald-600">{analytics.totalCtr}%</div>
+            </div>
+            <div className="rounded-2xl bg-gray-50 p-3">
+              <div className="text-gray-500">내부 이동률</div>
+              <div className="text-xl font-black text-blue-600">{analytics.internalMoveRate}%</div>
             </div>
           </div>
         </section>
 
-        <section className={cardClass}>
-          <h2 className="mb-3 text-sm font-bold text-gray-700">페이지 분석</h2>
-          <div className="space-y-3">
-            <div><div className="mb-1 text-xs font-semibold text-gray-500">source / medium</div>{topEntries(Object.fromEntries(analytics.sourceMedium.map((x) => [x.key, x.value])), 6).map((x) => <div key={x.key} className="text-xs text-gray-700">{x.key} · {x.value}</div>)}</div>
-            <div><div className="mb-1 text-xs font-semibold text-gray-500">referrer</div>{analytics.referrers.slice(0, 6).map((x) => <div key={x.key} className="text-xs text-gray-700">{x.key} · {x.value}</div>)}</div>
-            <div><div className="mb-1 text-xs font-semibold text-gray-500">UTM campaign</div>{analytics.campaigns.slice(0, 6).map((x) => <div key={x.key} className="text-xs text-gray-700">{x.key} · {x.value}</div>)}</div>
-            <div><div className="mb-1 text-xs font-semibold text-gray-500">단축링크별 유입</div>{analytics.shortInflows.slice(0, 6).map((x) => <div key={x.key} className="text-xs text-gray-700">/s/{x.key} · {x.value}</div>)}</div>
+        <section className={`${cardClass} md:col-span-2`}>
+          <h2 className="mb-3 text-sm font-bold text-gray-700">주간통계</h2>
+          <div className="-mx-2 overflow-x-auto px-2 md:mx-0 md:px-0">
+            <table className="w-full min-w-[620px] text-xs md:min-w-[760px] md:text-sm">
+              <thead>
+                <tr className="border-b text-gray-500">
+                  <th className="sticky left-0 z-10 bg-white px-2 py-2 text-left">항목</th>
+                  <th className="sticky left-[56px] z-10 bg-white px-2 py-2 text-center">전체</th>
+                  {analytics.trend.map((d) => (
+                    <th key={d.date} className="px-2 py-2 text-center whitespace-nowrap">{d.date}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b text-gray-700">
+                  <td className="sticky left-0 z-10 bg-white px-2 py-2 font-semibold whitespace-nowrap">방문자</td>
+                  <td className="sticky left-[56px] z-10 bg-white px-2 py-2 text-center font-semibold">{analytics.weeklyVisitors}</td>
+                  {analytics.trend.map((d) => (
+                    <td key={`vis-${d.date}`} className="px-2 py-2 text-center">{d.visitors}</td>
+                  ))}
+                </tr>
+                <tr className="text-gray-700">
+                  <td className="sticky left-0 z-10 bg-white px-2 py-2 font-semibold whitespace-nowrap">클릭</td>
+                  <td className="sticky left-[56px] z-10 bg-white px-2 py-2 text-center font-semibold">{analytics.weeklyClicks}</td>
+                  {analytics.trend.map((d) => (
+                    <td key={`clk-${d.date}`} className="px-2 py-2 text-center">{d.clicks}</td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
           </div>
         </section>
 
-        <section className={cardClass}>
+        <section className={`${cardClass} md:col-span-2`}>
+          <h2 className="mb-3 text-sm font-bold text-gray-700">페이지 분석</h2>
+          <div className="grid gap-3 text-xs md:grid-cols-2">
+            <div><div className="mb-1 font-semibold text-gray-500">source / medium</div>{analytics.sourceMedium.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
+            <div><div className="mb-1 font-semibold text-gray-500">referrer</div>{analytics.referrers.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
+            <div><div className="mb-1 font-semibold text-gray-500">UTM campaign</div>{analytics.campaigns.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
+            <div><div className="mb-1 font-semibold text-gray-500">단축링크별 유입</div>{analytics.shortInflows.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">/s/{x.key} · {x.value}</div>)}</div>
+          </div>
+        </section>
+
+        <section className={`${cardClass} md:col-span-2`}>
           <h2 className="mb-3 text-sm font-bold text-gray-700">콘텐츠 분석</h2>
-          <div className="space-y-3 text-xs">
+          <div className="grid gap-3 text-xs md:grid-cols-2">
             <div><div className="font-semibold text-gray-500">블로그 글별 조회수</div>{analytics.blogViews.slice(0, 6).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
             <div><div className="font-semibold text-gray-500">핫딜 페이지별 조회수</div>{analytics.hotdealViews.slice(0, 6).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
             <div><div className="font-semibold text-gray-500">상품 페이지별 조회수</div>{analytics.productViews.slice(0, 6).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
@@ -326,9 +366,9 @@ export default function AdminAnalyticsPage() {
           </div>
         </section>
 
-        <section className={cardClass}>
+        <section className={`${cardClass} md:col-span-2`}>
           <h2 className="mb-3 text-sm font-bold text-gray-700">전환 분석</h2>
-          <div className="space-y-3 text-xs">
+          <div className="grid gap-3 text-xs md:grid-cols-2">
             <div><div className="font-semibold text-gray-500">쿠팡 클릭</div><div>{analytics.totalCoupangClicks}</div></div>
             <div><div className="font-semibold text-gray-500">상품별 클릭</div>{analytics.productClicks.slice(0, 6).map((x) => <div key={x.key} className="truncate">{x.key} · {x.value}</div>)}</div>
             <div><div className="font-semibold text-gray-500">글별 쿠팡 CTR</div>{analytics.blogCtr.slice(0, 6).map((x) => <div key={x.path}>{x.path} · {x.ctr}%</div>)}</div>
@@ -336,12 +376,12 @@ export default function AdminAnalyticsPage() {
           </div>
         </section>
 
-        <section className={cardClass}>
+        <section className={`${cardClass} md:col-span-2`}>
           <h2 className="mb-3 text-sm font-bold text-gray-700">검색 분석</h2>
-          <div className="space-y-3 text-xs">
+          <div className="grid gap-3 text-xs md:grid-cols-2">
             <div><div className="font-semibold text-gray-500">검색어</div>{analytics.searchTerms.slice(0, 8).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
             <div><div className="font-semibold text-gray-500">검색 후 클릭률</div>{analytics.searchCtr.slice(0, 8).map((x) => <div key={x.query}>{x.query} · {x.ctr}% ({x.clicks}/{x.searches})</div>)}</div>
-            <div><div className="font-semibold text-gray-500">검색 결과 없음</div>{analytics.noResultTerms.slice(0, 8).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
+            <div className="md:col-span-2"><div className="font-semibold text-gray-500">검색 결과 없음</div>{analytics.noResultTerms.slice(0, 8).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
           </div>
         </section>
 
@@ -386,4 +426,3 @@ export default function AdminAnalyticsPage() {
     </div>
   );
 }
-

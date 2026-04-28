@@ -223,6 +223,21 @@ function getFileBaseName(url = '') {
   }
 }
 
+function parseStoredTags(raw) {
+  if (Array.isArray(raw)) return raw.map((item) => String(item || '').trim()).filter(Boolean);
+  if (typeof raw !== 'string') return [];
+  const normalized = raw.trim().replace(/^\{/, '').replace(/\}$/, '');
+  if (!normalized) return [];
+  return normalized
+    .split(',')
+    .map((item) => item.replace(/^"+|"+$/g, '').trim())
+    .filter(Boolean);
+}
+
+function hasCoupangLink(text = '') {
+  return /(https?:\/\/)?([a-z0-9-]+\.)?(coupang\.com|link\.coupang\.com)\//i.test(String(text || ''));
+}
+
 function getLinkStats(links = []) {
   const internal = links.filter((item) => item.isInternal).length;
   const external = links.filter((item) => item.isExternal).length;
@@ -660,6 +675,7 @@ function buildSnapshot(form) {
     ogImageUrl: form.ogImageUrl || '',
     tags: Array.isArray(form.tags) ? form.tags : [],
     affiliateDisclosure: !!form.affiliateDisclosure,
+    editorMode: form.editorMode || 'markdown',
     focusKeyword: form.focusKeyword || '',
     seoWeights: normalizeSeoWeights(form.seoWeights),
   });
@@ -692,6 +708,7 @@ function BlogEditorInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get('id');
+  const draftId = searchParams.get('draft');
 
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -727,6 +744,7 @@ function BlogEditorInner() {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showSplitPreview, setShowSplitPreview] = useState(false);
+  const [editorMode, setEditorMode] = useState('markdown');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -746,7 +764,7 @@ function BlogEditorInner() {
   const [imageCaptionInput, setImageCaptionInput] = useState('');
   const [imageWidthInput, setImageWidthInput] = useState('100');
 
-  const draftKey = useMemo(() => `blog-editor-draft:${editId || 'new'}`, [editId]);
+  const draftKey = useMemo(() => `blog-editor-draft:${editId ? `post:${editId}` : draftId || 'new'}`, [draftId, editId]);
 
   const textStats = useMemo(() => getTextStats(content), [content]);
   const headingList = useMemo(() => extractHeadings(content), [content]);
@@ -785,10 +803,11 @@ function BlogEditorInner() {
       ogImageUrl,
       tags,
       affiliateDisclosure,
+      editorMode,
       focusKeyword,
       seoWeights,
     });
-  }, [title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, focusKeyword, seoWeights]);
+  }, [title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -821,6 +840,7 @@ function BlogEditorInner() {
         ogImageUrl: '',
         tags: [],
         affiliateDisclosure: false,
+        editorMode: 'markdown',
         focusKeyword: '',
         seoWeights: createDefaultSeoWeights(),
         slugManual: false,
@@ -846,17 +866,9 @@ function BlogEditorInner() {
             scheduleEnabled: !!post.scheduled_at,
             thumbnailUrl: post.thumbnail_url || '',
             ogImageUrl: post.og_image_url || '',
-            tags: Array.isArray(post.tags)
-              ? post.tags
-              : typeof post.tags === 'string'
-                ? post.tags.split(',').map((item) => item.trim()).filter(Boolean)
-                : [],
+            tags: parseStoredTags(post.tags),
             affiliateDisclosure: !!post.affiliate_disclosure,
-            focusKeyword: Array.isArray(post.tags)
-              ? (post.tags[0] || '')
-              : typeof post.tags === 'string'
-                ? (post.tags.split(',').map((item) => item.trim()).filter(Boolean)[0] || '')
-                : '',
+            focusKeyword: parseStoredTags(post.tags)[0] || '',
             seoWeights: createDefaultSeoWeights(),
             slugManual: true,
           };
@@ -899,6 +911,7 @@ function BlogEditorInner() {
       setOgImageUrl(form.ogImageUrl);
       setTags(form.tags);
       setAffiliateDisclosure(!!form.affiliateDisclosure);
+      setEditorMode(form.editorMode || 'markdown');
       setFocusKeyword(form.focusKeyword || '');
       setSeoWeights(normalizeSeoWeights(form.seoWeights));
       setSlugManual(form.slugManual);
@@ -935,6 +948,7 @@ function BlogEditorInner() {
             ogImageUrl,
             tags,
             affiliateDisclosure,
+            editorMode,
             focusKeyword,
             seoWeights,
           },
@@ -951,7 +965,7 @@ function BlogEditorInner() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, focusKeyword, seoWeights, draftKey]);
+  }, [autosaveReady, loading, title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -1085,13 +1099,14 @@ function BlogEditorInner() {
     };
   }
 
-  function createExtendedPayload(basePayload) {
+  function createExtendedPayload(basePayload, options = {}) {
+    const forcedAffiliate = options.forceAffiliateDisclosure;
     return {
       ...basePayload,
       thumbnail_url: thumbnailUrl.trim() || null,
       og_image_url: ogImageUrl.trim() || null,
       tags: normalizeTagsForDb(),
-      affiliate_disclosure: !!affiliateDisclosure,
+      affiliate_disclosure: forcedAffiliate === undefined ? !!affiliateDisclosure : !!forcedAffiliate,
     };
   }
 
@@ -1108,12 +1123,24 @@ function BlogEditorInner() {
     );
   }
 
-  async function saveWithFallback(basePayload) {
-    const extendedPayload = createExtendedPayload(basePayload);
+  async function saveWithFallback(basePayload, options = {}) {
+    const extendedPayload = createExtendedPayload(basePayload, options);
 
     let response = editId
       ? await supabase.from('blog_posts').update(extendedPayload).eq('id', editId)
       : await supabase.from('blog_posts').insert({ ...extendedPayload, created_at: new Date().toISOString() });
+
+    if (response.error) {
+      const message = `${response.error.message || ''} ${response.error.details || ''}`.toLowerCase();
+      const maybeTagTypeMismatch =
+        message.includes('tags') && (message.includes('array') || message.includes('type') || message.includes('malformed'));
+      if (maybeTagTypeMismatch) {
+        const retryPayload = { ...extendedPayload, tags: normalizeTagsForDb().join(',') };
+        response = editId
+          ? await supabase.from('blog_posts').update(retryPayload).eq('id', editId)
+          : await supabase.from('blog_posts').insert({ ...retryPayload, created_at: new Date().toISOString() });
+      }
+    }
 
     if (response.error && isMissingColumnError(response.error)) {
       response = editId
@@ -1277,6 +1304,7 @@ function BlogEditorInner() {
     e.preventDefault();
     const url = window.prompt('연결할 URL 주소를 입력하세요 (http:// 포함)');
     if (!url) return;
+    if (hasCoupangLink(url)) setAffiliateDisclosure(true);
 
     const ta = textareaRef.current;
     if (!ta) return;
@@ -1327,6 +1355,24 @@ function BlogEditorInner() {
       setPublished(false);
     }
 
+    if (mode === 'schedule') {
+      if (!nextScheduleEnabled || !nextScheduledAt) {
+        setSaving(false);
+        return alert('예약발행 시간부터 설정해 주세요.');
+      }
+      if (!isFutureDate(nextScheduledAt)) {
+        setSaving(false);
+        return alert('예약 시간은 현재보다 이후여야 합니다.');
+      }
+      nextPublished = false;
+      setPublished(false);
+    }
+
+    const autoAffiliateDisclosure = hasCoupangLink(content);
+    if (autoAffiliateDisclosure && !affiliateDisclosure) {
+      setAffiliateDisclosure(true);
+    }
+
     const effectiveScheduledAt = nextScheduleEnabled ? nextScheduledAt : '';
     const isScheduled = effectiveScheduledAt && isFutureDate(effectiveScheduledAt);
 
@@ -1342,7 +1388,9 @@ function BlogEditorInner() {
       updated_at: new Date().toISOString(),
     };
 
-    const res = await saveWithFallback(basePayload);
+    const res = await saveWithFallback(basePayload, {
+      forceAffiliateDisclosure: affiliateDisclosure || autoAffiliateDisclosure,
+    });
 
     setSaving(false);
 
@@ -1351,11 +1399,7 @@ function BlogEditorInner() {
       return;
     }
 
-    try {
-      localStorage.removeItem(draftKey);
-    } catch (error) {
-      console.error(error);
-    }
+    // Keep local draft so multiple temporary drafts can coexist.
 
     const snapshot = buildSnapshot({
       title,
@@ -1369,7 +1413,8 @@ function BlogEditorInner() {
       thumbnailUrl,
       ogImageUrl,
       tags,
-      affiliateDisclosure,
+      affiliateDisclosure: affiliateDisclosure || autoAffiliateDisclosure,
+      editorMode,
       focusKeyword,
       seoWeights,
     });
@@ -1381,8 +1426,78 @@ function BlogEditorInner() {
 
     setTimeout(() => {
       setSaved(false);
-      router.push('/admin/blog');
     }, 900);
+
+    if (!editId) {
+      const { data: savedPost } = await supabase
+        .from('blog_posts')
+        .select('id')
+        .eq('slug', slug.trim())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (savedPost?.id) {
+        router.replace(`/admin/blog/editor?id=${savedPost.id}`);
+      }
+    }
+  }
+
+  function wrapSelection(before, after, placeholder = '텍스트') {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = content.slice(start, end) || placeholder;
+    const next = content.slice(0, start) + before + selected + after + content.slice(end);
+    setContent(next);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + before.length, start + before.length + selected.length);
+    }, 0);
+  }
+
+  function insertTextColor(e) {
+    e.preventDefault();
+    const color = window.prompt('색상 코드를 입력하세요. 예: #e11d48', '#e11d48');
+    if (!color) return;
+    wrapSelection(`<span style="color:${color};">`, '</span>');
+  }
+
+  function insertFontSize(e) {
+    e.preventDefault();
+    const size = window.prompt('폰트 크기(px)를 입력하세요. 예: 18', '18');
+    if (!size) return;
+    const px = Number(size);
+    if (!Number.isFinite(px) || px < 10 || px > 72) {
+      alert('10~72 사이 숫자를 입력해 주세요.');
+      return;
+    }
+    wrapSelection(`<span style="font-size:${Math.round(px)}px;">`, '</span>');
+  }
+
+  function insertLongDivider(e) {
+    e.preventDefault();
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const divider = '\n\n<hr style="border:0;border-top:2px solid #d1d5db;margin:28px 0;" />\n\n';
+    const next = content.slice(0, start) + divider + content.slice(start);
+    setContent(next);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + divider.length, start + divider.length);
+    }, 0);
+  }
+
+  function insertHtmlTable(e) {
+    e.preventDefault();
+    const tableHtml = '\n<table style="width:100%;border-collapse:collapse;">\n  <colgroup>\n    <col style="width:40%;" />\n    <col style="width:60%;" />\n  </colgroup>\n  <thead>\n    <tr>\n      <th style="border:1px solid #cbd5e1;padding:8px;text-align:left;">항목</th>\n      <th style="border:1px solid #cbd5e1;padding:8px;text-align:left;">내용</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td style="border:1px solid #cbd5e1;padding:8px;">예시</td>\n      <td style="border:1px solid #cbd5e1;padding:8px;">값</td>\n    </tr>\n  </tbody>\n</table>\n';
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const next = content.slice(0, start) + tableHtml + content.slice(end);
+    setContent(next);
   }
 
   async function handleDelete() {
@@ -1512,6 +1627,14 @@ function BlogEditorInner() {
           >
             {showPreview ? '✏️ 에디터' : '👁️ 미리보기'}
           </button>
+          {!editId && (
+            <button
+              onClick={() => router.push(`/admin/blog/editor?draft=${Date.now()}`)}
+              className="text-xs px-4 py-2 rounded-full font-bold bg-violet-100 text-violet-700 hover:bg-violet-200"
+            >
+              새 임시글
+            </button>
+          )}
           {editId && (
             <button
               onClick={handleDuplicate}
@@ -1783,6 +1906,13 @@ function BlogEditorInner() {
             >
               임시저장
             </button>
+            <button
+              onClick={() => handleSave('schedule')}
+              disabled={saving || !scheduleEnabled || !scheduledAt}
+              className="px-4 py-2 rounded-full text-xs font-bold bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50"
+            >
+              예약 발행
+            </button>
           </div>
 
           <div className="flex flex-col gap-3 rounded-2xl bg-gray-50 p-4 border border-gray-100">
@@ -1865,6 +1995,10 @@ function BlogEditorInner() {
                 ))}
                 <div className="w-px h-5 bg-gray-200 mx-1" />
                 <button onClick={insertLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">🔗 링크</button>
+                <button onClick={insertTextColor} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 색상</button>
+                <button onClick={insertFontSize} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 크기</button>
+                <button onClick={insertLongDivider} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">긴 줄</button>
+                <button onClick={insertHtmlTable} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">HTML 표</button>
                 <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">
                   🖼️ {uploading ? '업로드 중...' : '이미지'}
                 </button>
@@ -1873,6 +2007,12 @@ function BlogEditorInner() {
                   className={`px-3 py-1.5 text-xs font-bold rounded-lg ${showSplitPreview ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}
                 >
                   {showSplitPreview ? 'Split ON' : 'Split Preview'}
+                </button>
+                <button
+                  onClick={() => setEditorMode((prev) => (prev === 'markdown' ? 'html' : 'markdown'))}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg ${editorMode === 'html' ? 'bg-purple-100 text-purple-700' : 'text-gray-500 hover:bg-gray-100'}`}
+                >
+                  {editorMode === 'html' ? 'HTML ON' : 'HTML'}
                 </button>
                 <button
                   onClick={() => setAffiliateDisclosure((prev) => !prev)}
@@ -1889,14 +2029,14 @@ function BlogEditorInner() {
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder="마크다운으로 작성하세요..."
+                placeholder={editorMode === 'html' ? 'HTML로 작성하세요...' : '마크다운으로 작성하세요...'}
                 className={`w-full h-[32rem] px-5 py-4 text-sm font-mono text-gray-800 resize-none focus:outline-none leading-relaxed ${showSplitPreview ? 'border-r border-gray-100' : ''}`}
                 />
                 {showSplitPreview && (
                   <div
                     onClick={handlePreviewClick}
                     className="max-w-none px-6 py-5 min-h-[32rem] text-gray-800 leading-relaxed prose prose-sm prose-img:rounded-2xl overflow-y-auto"
-                    dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
+                    dangerouslySetInnerHTML={{ __html: editorMode === 'html' ? content : markdownToHtml(content) }}
                   />
                 )}
               </div>
@@ -1933,7 +2073,7 @@ function BlogEditorInner() {
                 <div
                   onClick={handlePreviewClick}
                   className="max-w-none px-6 py-5 min-h-[32rem] text-gray-800 leading-relaxed prose prose-sm prose-img:rounded-2xl"
-                  dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
+                  dangerouslySetInnerHTML={{ __html: editorMode === 'html' ? content : markdownToHtml(content) }}
                 />
               </div>
             </div>
@@ -2026,6 +2166,7 @@ function BlogEditorInner() {
             <h3 className="text-sm font-bold text-gray-800">빠른 액션</h3>
             <button onClick={() => handleSave('save-draft')} disabled={saving} className="w-full py-3 rounded-2xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50">임시저장</button>
             <button onClick={() => handleSave('publish-now')} disabled={saving} className="w-full py-3 rounded-2xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">지금 발행</button>
+            <button onClick={() => handleSave('schedule')} disabled={saving || !scheduleEnabled || !scheduledAt} className="w-full py-3 rounded-2xl font-bold text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50">예약 발행</button>
             <button onClick={() => handleSave('default')} disabled={saving || saved} className={`w-full py-3 rounded-2xl font-bold text-sm ${saved ? 'bg-green-500 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'} disabled:opacity-50`}>
               {saved ? '✅ 저장 완료!' : '현재 상태 저장'}
             </button>
