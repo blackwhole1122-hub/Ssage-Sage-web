@@ -35,7 +35,7 @@ async function getData() {
   const [postsRes, catsRes] = await Promise.all([
     supabase
       .from('blog_posts')
-      .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at')
+      .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, thumbnail_url, og_image_url')
       .eq('published', true)
       .order('created_at', { ascending: false }),
     supabase

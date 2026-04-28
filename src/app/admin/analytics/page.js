@@ -188,6 +188,11 @@ export default function AdminAnalyticsPage() {
     const searchQueryClickMap = {};
     const noResultCountMap = {};
     const shortConversionMap = {};
+    const slugTitleMap = new Map(blogPosts.map((post) => [post.slug, post.title || post.slug]));
+    const toBlogLabel = (path) => {
+      const slug = String(path || '').replace(/^\/blog\//, '');
+      return slugTitleMap.get(slug) || decodeURIComponent(slug || path || '');
+    };
 
     pageViews.forEach((e) => {
       const key = `${e.source || 'direct'} / ${e.medium || 'none'}`;
@@ -237,7 +242,7 @@ export default function AdminAnalyticsPage() {
     });
 
     const blogCtr = Object.entries(blogCtrMap)
-      .map(([path, stat]) => ({ path, views: stat.views, clicks: stat.clicks, ctr: percent(stat.clicks, stat.views) }))
+      .map(([path, stat]) => ({ path, label: toBlogLabel(path), views: stat.views, clicks: stat.clicks, ctr: percent(stat.clicks, stat.views) }))
       .sort((a, b) => b.ctr - a.ctr)
       .slice(0, 10);
 
@@ -530,7 +535,7 @@ export default function AdminAnalyticsPage() {
           <div className="grid gap-3 text-xs md:grid-cols-2">
             <div><div className="font-semibold text-gray-500">쿠팡 클릭</div><div>{analytics.totalCoupangClicks}</div></div>
             <div><div className="font-semibold text-gray-500">상품별 클릭</div>{analytics.productClicks.slice(0, 6).map((x) => <div key={x.key} className="truncate">{x.key} · {x.value}</div>)}</div>
-            <div><div className="font-semibold text-gray-500">글별 쿠팡 CTR</div>{analytics.blogCtr.slice(0, 6).map((x) => <div key={x.path}>{x.path} · {x.ctr}%</div>)}</div>
+            <div><div className="font-semibold text-gray-500">글별 쿠팡 CTR</div>{analytics.blogCtr.slice(0, 6).map((x) => <div key={x.path} className="truncate">{x.label} · {x.ctr}%</div>)}</div>
             <div><div className="font-semibold text-gray-500">유입 채널별 쿠팡 CTR</div>{analytics.channelCtr.slice(0, 6).map((x) => <div key={x.channel}>{x.channel} · {x.ctr}%</div>)}</div>
           </div>
         </section>

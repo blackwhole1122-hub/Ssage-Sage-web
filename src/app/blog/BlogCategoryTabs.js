@@ -1,30 +1,11 @@
-'use client'
+﻿'use client'
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// 카테고리별 아이콘 매핑
-const CATEGORY_ICONS = {
-  '생활용품': '🧹',
-  '전자기기': '💻',
-  '쇼핑꿀팁': '🛒',
-  '게임': '🎮',
-  '건강/식품': '🥗',
-  '생활정보': '💡',
-  '반려동물': '🐾',
-};
-
-// 카테고리별 배경색 매핑 (hover 포함)
-const CATEGORY_COLORS = {
-  '생활용품': 'group-hover:bg-blue-50',
-  '전자기기': 'group-hover:bg-purple-50',
-  '쇼핑꿀팁': 'group-hover:bg-orange-50',
-  '게임': 'group-hover:bg-indigo-50',
-  '건강/식품': 'group-hover:bg-green-50',
-  '생활정보': 'group-hover:bg-yellow-50',
-  '반려동물': 'group-hover:bg-amber-50',
-};
+const CATEGORY_ICONS = {};
+const CATEGORY_COLORS = {};
 
 export default function BlogCategoryTabs({
   posts,
@@ -89,7 +70,7 @@ export default function BlogCategoryTabs({
 
   return (
     <div>
-      {/* 카테고리 탭 */}
+      {/* 移댄뀒怨좊━ ??*/}
       <nav className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
         <button
           onClick={() => {
@@ -102,7 +83,7 @@ export default function BlogCategoryTabs({
               : 'bg-[#FAF6F0] text-[#64748B] hover:bg-[#F0EAE0] hover:text-[#1E293B]'
           }`}
         >
-          전체
+          ?꾩껜
         </button>
 
         {categories.map((cat) => (
@@ -126,13 +107,39 @@ export default function BlogCategoryTabs({
         ))}
       </nav>
 
-      {/* 블로그 글 목록 그리드 */}
+      {/* 釉붾줈洹?湲 紐⑸줉 洹몃━??*/}
       {filteredPosts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredPosts.map((post) => {
             const category = categories.find((c) => c.id === post.category_id);
-            const icon = post.emoji || CATEGORY_ICONS[category?.name] || '📝';
+            const icon = post.emoji || CATEGORY_ICONS[category?.name] || '?뱷';
             const hoverBg = CATEGORY_COLORS[category?.name] || 'group-hover:bg-[#E6FAF9]';
+            const thumb = post.thumbnail_url || post.og_image_url || '';
+
+            if (thumb) {
+              return (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group bg-white rounded-2xl border border-[#E2E8F0] hover:border-[#0ABAB5] transition-all duration-200 overflow-hidden flex flex-col deal-card"
+                >
+                  <img
+                    src={thumb}
+                    alt={post.title || 'thumbnail'}
+                    className="w-full aspect-[16/9] object-cover"
+                  />
+                  <div className="p-5 flex flex-col">
+                    <h2 className="text-[16px] font-bold text-[#1E293B] mb-3 group-hover:text-[#0ABAB5] transition-colors line-clamp-2">
+                      {post.title}
+                    </h2>
+                    <div className="text-[12px] text-[#94A3B8] font-medium pt-3 border-t border-[#E2E8F0]">
+                      {postDateFormatter.format(new Date(post.created_at))}
+                    </div>
+                  </div>
+                </Link>
+              );
+            }
+
             return (
               <Link
                 key={post.id}
@@ -160,15 +167,17 @@ export default function BlogCategoryTabs({
         </div>
       ) : (
         <div className="py-20 text-center bg-white rounded-2xl border border-[#E2E8F0]">
-          <span className="text-4xl block mb-3">🦀</span>
+          <span className="text-4xl block mb-3">??</span>
           <p className="text-[15px] font-semibold text-[#1E293B]">
-            이 카테고리에는 아직 글이 없어요
+            ??移댄뀒怨좊━?먮뒗 ?꾩쭅 湲???놁뼱??
           </p>
           <p className="text-[13px] text-[#64748B] mt-1">
-            곧 유용한 정보가 올라올 예정이에요
+            怨??좎슜???뺣낫媛 ?щ씪???덉젙?댁뿉??
           </p>
         </div>
       )}
     </div>
   );
 }
+
+

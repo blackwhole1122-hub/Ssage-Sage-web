@@ -704,6 +704,10 @@ function getStatusClass(status) {
   return 'bg-gray-100 text-gray-600';
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
 function BlogEditorInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -713,7 +717,6 @@ function BlogEditorInner() {
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
   const thumbnailInputRef = useRef(null);
-  const ogInputRef = useRef(null);
   const saveTimerRef = useRef(null);
   const slugTimerRef = useRef(null);
 
@@ -763,6 +766,10 @@ function BlogEditorInner() {
   const [imageAltInput, setImageAltInput] = useState('');
   const [imageCaptionInput, setImageCaptionInput] = useState('');
   const [imageWidthInput, setImageWidthInput] = useState('100');
+  const [thumbnailEditorOpen, setThumbnailEditorOpen] = useState(false);
+  const [thumbnailEditorZoom, setThumbnailEditorZoom] = useState(1);
+  const [thumbnailEditorOffsetX, setThumbnailEditorOffsetX] = useState(0);
+  const [thumbnailEditorOffsetY, setThumbnailEditorOffsetY] = useState(0);
 
   const draftKey = useMemo(() => `blog-editor-draft:${editId ? `post:${editId}` : draftId || 'new'}`, [draftId, editId]);
 
@@ -854,6 +861,7 @@ function BlogEditorInner() {
           .single();
 
         if (!error && post) {
+          const unifiedThumb = post.thumbnail_url || post.og_image_url || '';
           form = {
             title: post.title || '',
             slug: post.slug || '',
@@ -864,8 +872,8 @@ function BlogEditorInner() {
             categoryId: String(post.category_id || ''),
             scheduledAt: post.scheduled_at ? toLocalDateTimeValue(post.scheduled_at) : '',
             scheduleEnabled: !!post.scheduled_at,
-            thumbnailUrl: post.thumbnail_url || '',
-            ogImageUrl: post.og_image_url || '',
+            thumbnailUrl: unifiedThumb,
+            ogImageUrl: unifiedThumb,
             tags: parseStoredTags(post.tags),
             affiliateDisclosure: !!post.affiliate_disclosure,
             focusKeyword: parseStoredTags(post.tags)[0] || '',
@@ -1082,6 +1090,12 @@ function BlogEditorInner() {
     return tags.map((item) => item.trim()).filter(Boolean);
   }
 
+  function setUnifiedThumbnail(url) {
+    const value = String(url || '').trim();
+    setThumbnailUrl(value);
+    setOgImageUrl(value);
+  }
+
   function createBasePayload() {
     const effectiveScheduledAt = scheduleEnabled ? scheduledAt : '';
     const isScheduled = effectiveScheduledAt && isFutureDate(effectiveScheduledAt);
@@ -1104,7 +1118,7 @@ function BlogEditorInner() {
     return {
       ...basePayload,
       thumbnail_url: thumbnailUrl.trim() || null,
-      og_image_url: ogImageUrl.trim() || null,
+      og_image_url: thumbnailUrl.trim() || null,
       tags: normalizeTagsForDb(),
       affiliate_disclosure: forcedAffiliate === undefined ? !!affiliateDisclosure : !!forcedAffiliate,
     };
@@ -1245,13 +1259,68 @@ function BlogEditorInner() {
     try {
       setMetaUploading(true);
       const publicUrl = await uploadImageFile(file, 'blog-meta');
-      if (type === 'thumbnail') setThumbnailUrl(publicUrl);
-      if (type === 'og') setOgImageUrl(publicUrl);
+      if (type === 'thumbnail') setUnifiedThumbnail(publicUrl);
     } catch (error) {
       alert('업로드 실패: ' + error.message);
     } finally {
       setMetaUploading(false);
       if (e.target) e.target.value = '';
+    }
+  }
+
+  function openThumbnailEditor() {
+    if (!thumbnailUrl) return;
+    setThumbnailEditorZoom(1);
+    setThumbnailEditorOffsetX(0);
+    setThumbnailEditorOffsetY(0);
+    setThumbnailEditorOpen(true);
+  }
+
+  async function applyThumbnailCrop() {
+    if (!thumbnailUrl) return;
+    try {
+      setMetaUploading(true);
+      const image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('이미지를 불러오지 못했습니다.'));
+        img.src = thumbnailUrl;
+      });
+
+      const targetW = 1280;
+      const targetH = 720;
+      const ratio = targetW / targetH;
+      const imageRatio = image.width / image.height;
+      const baseW = imageRatio > ratio ? image.height * ratio : image.width;
+      const baseH = imageRatio > ratio ? image.height : image.width / ratio;
+      const zoom = clamp(thumbnailEditorZoom, 1, 3);
+      const cropW = baseW / zoom;
+      const cropH = baseH / zoom;
+      const maxShiftX = (baseW - cropW) / 2;
+      const maxShiftY = (baseH - cropH) / 2;
+      const centerX = image.width / 2 + maxShiftX * (thumbnailEditorOffsetX / 100);
+      const centerY = image.height / 2 + maxShiftY * (thumbnailEditorOffsetY / 100);
+      const sx = clamp(centerX - cropW / 2, 0, image.width - cropW);
+      const sy = clamp(centerY - cropH / 2, 0, image.height - cropH);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetW;
+      canvas.height = targetH;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('캔버스 생성에 실패했습니다.');
+      ctx.drawImage(image, sx, sy, cropW, cropH, 0, 0, targetW, targetH);
+
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      if (!blob) throw new Error('이미지 변환에 실패했습니다.');
+      const file = new File([blob], `thumb-${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const newUrl = await uploadImageFile(file, 'blog-meta');
+      setUnifiedThumbnail(newUrl);
+      setThumbnailEditorOpen(false);
+    } catch (error) {
+      alert(`썸네일 편집 실패: ${error.message}`);
+    } finally {
+      setMetaUploading(false);
     }
   }
 
@@ -1756,17 +1825,17 @@ function BlogEditorInner() {
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-sm font-bold text-gray-800">검색/대표 이미지 설정</h2>
-            <div className="text-[11px] text-gray-400">대표 이미지, OG 이미지, 태그를 미리 넣어둘 수 있어요.</div>
+            <div className="text-[11px] text-gray-400">OG 이미지는 대표 썸네일과 자동으로 동일하게 저장됩니다.</div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-1 gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-gray-500">🖼️ 대표 썸네일</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={thumbnailUrl}
-                  onChange={(e) => setThumbnailUrl(e.target.value)}
+                  onChange={(e) => setUnifiedThumbnail(e.target.value)}
                   placeholder="대표 이미지 URL"
                   className="flex-1 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
                 />
@@ -1776,30 +1845,16 @@ function BlogEditorInner() {
                 >
                   {metaUploading ? '업로드 중...' : '업로드'}
                 </button>
+                <button
+                  onClick={openThumbnailEditor}
+                  disabled={!thumbnailUrl || metaUploading}
+                  className="px-3 py-2 text-xs font-bold bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 disabled:opacity-50"
+                >
+                  편집
+                </button>
                 <input ref={thumbnailInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleMetaImageUpload('thumbnail', e)} />
               </div>
-              {thumbnailUrl && <img src={thumbnailUrl} alt="thumbnail" className="h-36 w-full object-cover rounded-2xl border border-gray-200" />}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-500">🌐 OG 이미지</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={ogImageUrl}
-                  onChange={(e) => setOgImageUrl(e.target.value)}
-                  placeholder="공유 미리보기 이미지 URL"
-                  className="flex-1 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
-                />
-                <button
-                  onClick={() => ogInputRef.current?.click()}
-                  className="px-3 py-2 text-xs font-bold bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200"
-                >
-                  {metaUploading ? '업로드 중...' : '업로드'}
-                </button>
-                <input ref={ogInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleMetaImageUpload('og', e)} />
-              </div>
-              {ogImageUrl && <img src={ogImageUrl} alt="og" className="h-36 w-full object-cover rounded-2xl border border-gray-200" />}
+              {thumbnailUrl && <img src={thumbnailUrl} alt="thumbnail" className="h-48 w-full object-cover rounded-2xl border border-gray-200" />}
             </div>
           </div>
 
@@ -2173,6 +2228,42 @@ function BlogEditorInner() {
           </div>
         </div>
       </main>
+
+      {thumbnailEditorOpen && thumbnailUrl && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4" onClick={() => setThumbnailEditorOpen(false)}>
+          <div className="w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-base font-bold text-gray-900">썸네일 편집</h3>
+            <p className="mt-1 text-xs text-gray-500">16:9 카드 기준으로 썸네일 확대/위치를 조절합니다.</p>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+              <div className="relative aspect-[16/9] w-full">
+                <img
+                  src={thumbnailUrl}
+                  alt="thumbnail editor"
+                  className="absolute left-1/2 top-1/2 h-full w-full max-w-none object-cover"
+                  style={{
+                    transform: `translate(-50%, -50%) translate(${thumbnailEditorOffsetX}%, ${thumbnailEditorOffsetY}%) scale(${thumbnailEditorZoom})`,
+                  }}
+                />
+              </div>
+            </div>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <label className="text-xs text-gray-600">확대
+                <input type="range" min="1" max="3" step="0.05" value={thumbnailEditorZoom} onChange={(e) => setThumbnailEditorZoom(Number(e.target.value))} className="mt-1 w-full" />
+              </label>
+              <label className="text-xs text-gray-600">좌우 이동
+                <input type="range" min="-100" max="100" step="1" value={thumbnailEditorOffsetX} onChange={(e) => setThumbnailEditorOffsetX(Number(e.target.value))} className="mt-1 w-full" />
+              </label>
+              <label className="text-xs text-gray-600">상하 이동
+                <input type="range" min="-100" max="100" step="1" value={thumbnailEditorOffsetY} onChange={(e) => setThumbnailEditorOffsetY(Number(e.target.value))} className="mt-1 w-full" />
+              </label>
+            </div>
+            <div className="mt-5 flex items-center justify-end gap-2">
+              <button onClick={() => setThumbnailEditorOpen(false)} disabled={metaUploading} className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-60">취소</button>
+              <button onClick={applyThumbnailCrop} disabled={metaUploading} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-60">{metaUploading ? '적용 중...' : '적용'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {imageDialogOpen && (
         <div
