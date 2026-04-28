@@ -59,6 +59,25 @@ function rangeLabel(type) {
   return '월별';
 }
 
+function monthValue(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthRange(value) {
+  const [y, m] = String(value || '').split('-').map(Number);
+  if (!y || !m) {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0),
+      end: new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0, 0),
+    };
+  }
+  return {
+    start: new Date(y, m - 1, 1, 0, 0, 0, 0),
+    end: new Date(y, m, 1, 0, 0, 0, 0),
+  };
+}
+
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -67,6 +86,8 @@ export default function AdminAnalyticsPage() {
   const [blogPosts, setBlogPosts] = useState([]);
   const [pageRange, setPageRange] = useState('today');
   const [contentRange, setContentRange] = useState('today');
+  const [pageMonth, setPageMonth] = useState(monthValue());
+  const [contentMonth, setContentMonth] = useState(monthValue());
 
   useEffect(() => {
     const init = async () => {
@@ -279,8 +300,15 @@ export default function AdminAnalyticsPage() {
   }, [events, blogPosts]);
 
   const pageAnalytics = useMemo(() => {
-    const start = startOfRange(pageRange);
-    const filteredPageViews = events.filter((e) => e.event_name === 'page_view' && new Date(e.created_at) >= start);
+    const start = pageRange === 'month' ? monthRange(pageMonth).start : startOfRange(pageRange);
+    const end = pageRange === 'month' ? monthRange(pageMonth).end : null;
+    const filteredPageViews = events.filter((e) => {
+      if (e.event_name !== 'page_view') return false;
+      const t = new Date(e.created_at);
+      if (t < start) return false;
+      if (end && t >= end) return false;
+      return true;
+    });
     const sourceMediumMap = {};
     const campaignMap = {};
     const shortInflowMap = {};
@@ -296,12 +324,25 @@ export default function AdminAnalyticsPage() {
       shortInflows: topEntries(shortInflowMap, 10),
       views: filteredPageViews.length,
     };
-  }, [events, pageRange]);
+  }, [events, pageMonth, pageRange]);
 
   const contentAnalytics = useMemo(() => {
-    const start = startOfRange(contentRange);
-    const filteredPageViews = events.filter((e) => e.event_name === 'page_view' && new Date(e.created_at) >= start);
-    const filteredInternalClicks = events.filter((e) => e.event_name === 'internal_click' && new Date(e.created_at) >= start);
+    const start = contentRange === 'month' ? monthRange(contentMonth).start : startOfRange(contentRange);
+    const end = contentRange === 'month' ? monthRange(contentMonth).end : null;
+    const filteredPageViews = events.filter((e) => {
+      if (e.event_name !== 'page_view') return false;
+      const t = new Date(e.created_at);
+      if (t < start) return false;
+      if (end && t >= end) return false;
+      return true;
+    });
+    const filteredInternalClicks = events.filter((e) => {
+      if (e.event_name !== 'internal_click') return false;
+      const t = new Date(e.created_at);
+      if (t < start) return false;
+      if (end && t >= end) return false;
+      return true;
+    });
     const blogViewMap = {};
     const hotdealViewMap = {};
     const productViewMap = {};
@@ -329,7 +370,16 @@ export default function AdminAnalyticsPage() {
       internalMoveRate: percent(filteredInternalClicks.length, filteredPageViews.length),
       views: filteredPageViews.length,
     };
-  }, [blogPosts, contentRange, events]);
+  }, [blogPosts, contentMonth, contentRange, events]);
+
+  const monthOptions = useMemo(() => {
+    const keys = new Set([monthValue()]);
+    for (const e of events) {
+      if (!e?.created_at) continue;
+      keys.add(monthValue(new Date(e.created_at)));
+    }
+    return Array.from(keys).sort((a, b) => (a > b ? -1 : 1)).slice(0, 24);
+  }, [events]);
 
   const cardClass = 'rounded-3xl border border-gray-100 bg-white p-5 shadow-sm';
   const tableClass = 'w-full text-sm';
@@ -422,6 +472,17 @@ export default function AdminAnalyticsPage() {
                 {rangeLabel(key)}
               </button>
             ))}
+            {pageRange === 'month' && (
+              <select
+                value={pageMonth}
+                onChange={(e) => setPageMonth(e.target.value)}
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700"
+              >
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
             <span className="text-[11px] text-gray-400">{pageAnalytics.views} views</span>
           </div>
           <div className="grid gap-3 text-xs md:grid-cols-2">
@@ -443,6 +504,17 @@ export default function AdminAnalyticsPage() {
                 {rangeLabel(key)}
               </button>
             ))}
+            {contentRange === 'month' && (
+              <select
+                value={contentMonth}
+                onChange={(e) => setContentMonth(e.target.value)}
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs text-gray-700"
+              >
+                {monthOptions.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            )}
             <span className="text-[11px] text-gray-400">{contentAnalytics.views} views</span>
           </div>
           <div className="grid gap-3 text-xs md:grid-cols-2">

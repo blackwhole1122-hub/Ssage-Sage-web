@@ -40,6 +40,18 @@ export async function POST(request) {
     };
 
     const supabase = createSupabaseServerClient();
+
+    // Exclude admin/self views from blog view counts:
+    // when a logged-in user opens blog detail, do not store page_view.
+    // (Admin pages require login in this project, so this effectively
+    // prevents admin browsing from inflating blog post view metrics.)
+    if (eventName === 'page_view' && String(payload.page_path || '').startsWith('/blog/')) {
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user?.id) {
+        return NextResponse.json({ ok: true, skipped: 'authenticated_blog_view' });
+      }
+    }
+
     const { error } = await supabase.from('analytics_events').insert(payload);
     if (error) {
       return NextResponse.json({ ok: false, message: error.message }, { status: 200 });
@@ -50,4 +62,3 @@ export async function POST(request) {
     return NextResponse.json({ ok: false, message: error?.message || 'unknown error' }, { status: 200 });
   }
 }
-
