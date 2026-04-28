@@ -480,6 +480,15 @@ function getSeoSignalInfo(score) {
 }
 
 function formatInline(text = '') {
+  const trimmed = String(text || '').trim();
+  const singleLinkMatch = trimmed.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  if (singleLinkMatch && hasCoupangLink(singleLinkMatch[2])) {
+    const linkText = escapeHtml(singleLinkMatch[1]);
+    const href = singleLinkMatch[2];
+    const rel = buildExternalRel(href);
+    return `<a href="${href}" target="_blank" rel="${rel}" class="inline-flex w-full items-center justify-center rounded-xl bg-[#ff6b35] px-4 py-3 text-[15px] font-bold text-white no-underline shadow-sm hover:bg-[#ff5a1f]">${linkText}</a>`;
+  }
+
   return escapeHtml(text)
     .replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)(?:\{width=(\d{1,3})%\})?/g, (_m, alt, src, _caption, width) => {
       const widthPercent = normalizeImageWidthPercent(width);
@@ -488,6 +497,9 @@ function formatInline(text = '') {
     })
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, linkText, href) => {
       const rel = buildExternalRel(href);
+      if (hasCoupangLink(href)) {
+        return `<a href="${href}" target="_blank" rel="${rel}" class="inline-flex items-center justify-center rounded-xl bg-[#ff6b35] px-3 py-1.5 text-xs font-bold text-white no-underline shadow-sm hover:bg-[#ff5a1f]">${linkText}</a>`;
+      }
       return `<a href="${href}" target="_blank" rel="${rel}" class="text-blue-600 underline break-all">${linkText}</a>`;
     })
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -743,6 +755,7 @@ function BlogEditorInner() {
   const [affiliateDisclosure, setAffiliateDisclosure] = useState(false);
   const [focusKeyword, setFocusKeyword] = useState('');
   const [seoWeights, setSeoWeights] = useState(() => createDefaultSeoWeights());
+  const [linkablePosts, setLinkablePosts] = useState([]);
 
   const [showEmoji, setShowEmoji] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -826,12 +839,20 @@ function BlogEditorInner() {
         return;
       }
 
-      const { data: catData } = await supabase
-        .from('blog_categories')
-        .select('*')
-        .order('id', { ascending: true });
+      const [{ data: catData }, { data: postListData }] = await Promise.all([
+        supabase
+          .from('blog_categories')
+          .select('*')
+          .order('id', { ascending: true }),
+        supabase
+          .from('blog_posts')
+          .select('id, title, slug, published, scheduled_at')
+          .order('updated_at', { ascending: false })
+          .limit(2000),
+      ]);
 
       if (catData) setCategories(catData);
+      if (postListData) setLinkablePosts(postListData);
 
       let form = {
         title: '',
@@ -1384,6 +1405,57 @@ function BlogEditorInner() {
     const end = ta.selectionEnd;
     const selected = content.slice(start, end) || '링크 문구';
     const linkMd = `[${selected}](${url})`;
+    const newText = content.slice(0, start) + linkMd + content.slice(end);
+
+    setContent(newText);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + 1, start + 1 + selected.length);
+    }, 0);
+  }
+
+  function insertInternalLink(e) {
+    e.preventDefault();
+    const now = new Date();
+    const candidates = linkablePosts.filter((post) => {
+      if (!post?.slug || !post?.title) return false;
+      if (editId && String(post.id) === String(editId)) return false;
+      if (!post.published) return false;
+      if (post.scheduled_at && new Date(post.scheduled_at) > now) return false;
+      return true;
+    });
+
+    if (!candidates.length) {
+      alert('내부 링크로 넣을 게시글이 없습니다.');
+      return;
+    }
+
+    const keyword = window.prompt('연결할 글 제목 키워드를 입력하세요.');
+    if (!keyword) return;
+    const lowered = keyword.toLowerCase();
+    const matched = candidates.filter((post) => String(post.title || '').toLowerCase().includes(lowered)).slice(0, 20);
+
+    if (!matched.length) {
+      alert('일치하는 게시글을 찾지 못했습니다.');
+      return;
+    }
+
+    let picked = matched[0];
+    if (matched.length > 1) {
+      const listText = matched.slice(0, 10).map((post, idx) => `${idx + 1}. ${post.title}`).join('\n');
+      const selected = window.prompt(`여러 글이 검색됐어요. 번호를 입력하세요:\n\n${listText}`, '1');
+      const index = Number(selected) - 1;
+      if (Number.isInteger(index) && index >= 0 && index < Math.min(matched.length, 10)) {
+        picked = matched[index];
+      }
+    }
+
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = content.slice(start, end) || picked.title;
+    const linkMd = `[${selected}](/blog/${picked.slug})`;
     const newText = content.slice(0, start) + linkMd + content.slice(end);
 
     setContent(newText);
@@ -2052,6 +2124,7 @@ function BlogEditorInner() {
                 ))}
                 <div className="w-px h-5 bg-gray-200 mx-1" />
                 <button onClick={insertLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">🔗 링크</button>
+                <button onClick={insertInternalLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">내부 링크</button>
                 <button onClick={insertTextColor} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 색상</button>
                 <button onClick={insertFontSize} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 크기</button>
                 <button onClick={insertLongDivider} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">긴 줄</button>

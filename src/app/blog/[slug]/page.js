@@ -129,6 +129,11 @@ function isExternalHref(href = '') {
   return /^https?:\/\//.test(lower) || lower.startsWith('//');
 }
 
+function isCoupangHref(href = '') {
+  const lower = String(href || '').toLowerCase().trim();
+  return /^(https?:\/\/)?([a-z0-9-]+\.)?(coupang\.com|link\.coupang\.com)\//.test(lower);
+}
+
 function getPreferredPostImage(post) {
   return post?.og_image_url || post?.thumbnail_url || '/og-image.png';
 }
@@ -143,9 +148,20 @@ function markdownToHtml(md = '') {
     return renderMarkdownImageFigure(alt, src, caption, width);
   });
   html = html.replace(/((?:^\|.*\|\s*$\n?){2,})/gm, (tableBlock) => renderMarkdownTable(tableBlock));
+  html = html.replace(/^\[([^\]]+)\]\(([^)]+)\)\s*$/gm, (_m, text, href) => {
+    if (!isCoupangHref(href)) return _m;
+    const safeHref = escapeHtml(href || '');
+    const safeText = escapeHtml(text || '');
+    const rel = buildExternalRel(href);
+    return `<a href="${safeHref}" class="md-coupang-btn md-coupang-btn-lg" target="_blank" rel="${rel}">${safeText}</a>`;
+  });
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, text, href) => {
     const safeHref = escapeHtml(href || '');
     const safeText = escapeHtml(text || '');
+    if (isCoupangHref(href)) {
+      const rel = buildExternalRel(href);
+      return `<a href="${safeHref}" class="md-coupang-btn" target="_blank" rel="${rel}">${safeText}</a>`;
+    }
     if (isExternalHref(href)) {
       const rel = buildExternalRel(href);
       return `<a href="${safeHref}" class="md-link" target="_blank" rel="${rel}">${safeText}</a>`;
@@ -421,6 +437,8 @@ export default async function BlogPostPage({ params }) {
           [&_.md-h3]:text-[17px] [&_.md-h3]:font-semibold [&_.md-h3]:mt-6 [&_.md-h3]:mb-2 [&_.md-h3]:text-[#1E293B]
           [&_.md-p]:text-[#1E293B] [&_.md-p]:leading-[1.9] [&_.md-p]:mb-5 [&_.md-p]:text-[15px]
           [&_.md-link]:text-[#0ABAB5] [&_.md-link]:underline [&_.md-link]:underline-offset-2
+          [&_.md-coupang-btn]:inline-flex [&_.md-coupang-btn]:items-center [&_.md-coupang-btn]:justify-center [&_.md-coupang-btn]:rounded-xl [&_.md-coupang-btn]:bg-[#ff6b35] [&_.md-coupang-btn]:px-3 [&_.md-coupang-btn]:py-1.5 [&_.md-coupang-btn]:text-[12px] [&_.md-coupang-btn]:font-bold [&_.md-coupang-btn]:text-white [&_.md-coupang-btn]:no-underline [&_.md-coupang-btn]:shadow-sm [&_.md-coupang-btn]:hover:bg-[#ff5a1f]
+          [&_.md-coupang-btn-lg]:my-3 [&_.md-coupang-btn-lg]:w-full [&_.md-coupang-btn-lg]:py-3 [&_.md-coupang-btn-lg]:text-[15px]
           [&_.md-figure]:my-6 [&_.md-figure]:flex [&_.md-figure]:flex-col [&_.md-figure]:items-center
           [&_.md-img]:rounded-xl [&_.md-img]:my-2 [&_.md-img]:max-w-full
           [&_.md-figcaption]:mt-2 [&_.md-figcaption]:text-center [&_.md-figcaption]:text-[13px] [&_.md-figcaption]:text-[#64748B]
