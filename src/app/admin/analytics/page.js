@@ -41,12 +41,32 @@ function percent(numerator, denominator) {
   return Math.round((numerator / denominator) * 1000) / 10;
 }
 
+function startOfRange(type, now = new Date()) {
+  const base = new Date(now);
+  base.setHours(0, 0, 0, 0);
+  if (type === 'today') return base;
+  if (type === 'week') {
+    base.setDate(base.getDate() - 6);
+    return base;
+  }
+  // month: current month start
+  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+}
+
+function rangeLabel(type) {
+  if (type === 'today') return '오늘';
+  if (type === 'week') return '주간';
+  return '월별';
+}
+
 export default function AdminAnalyticsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [events, setEvents] = useState([]);
   const [blogPosts, setBlogPosts] = useState([]);
+  const [pageRange, setPageRange] = useState('today');
+  const [contentRange, setContentRange] = useState('today');
 
   useEffect(() => {
     const init = async () => {
@@ -58,9 +78,6 @@ export default function AdminAnalyticsPage() {
         return;
       }
 
-      const since = new Date();
-      since.setDate(since.getDate() - 30);
-
       setLoading(true);
       setError('');
       try {
@@ -68,9 +85,8 @@ export default function AdminAnalyticsPage() {
           supabase
             .from('analytics_events')
             .select('event_name, session_id, page_path, page_type, target_url, source, medium, campaign, referrer, short_slug, search_query, metadata, created_at')
-            .gte('created_at', since.toISOString())
             .order('created_at', { ascending: false })
-            .limit(10000),
+            .limit(50000),
           supabase
             .from('blog_posts')
             .select('id, slug, title, published')
@@ -139,7 +155,6 @@ export default function AdminAnalyticsPage() {
     const weeklyClicks = trend.reduce((sum, item) => sum + item.clicks, 0);
 
     const sourceMediumMap = {};
-    const referrerMap = {};
     const campaignMap = {};
     const shortInflowMap = {};
     const blogViewMap = {};
@@ -156,9 +171,6 @@ export default function AdminAnalyticsPage() {
     pageViews.forEach((e) => {
       const key = `${e.source || 'direct'} / ${e.medium || 'none'}`;
       sourceMediumMap[key] = (sourceMediumMap[key] || 0) + 1;
-
-      const refHost = toHost(e.referrer || '') || (e.referrer ? e.referrer : 'direct');
-      referrerMap[refHost || 'direct'] = (referrerMap[refHost || 'direct'] || 0) + 1;
 
       if (e.campaign) campaignMap[e.campaign] = (campaignMap[e.campaign] || 0) + 1;
       if (e.short_slug) shortInflowMap[e.short_slug] = (shortInflowMap[e.short_slug] || 0) + 1;
@@ -248,7 +260,6 @@ export default function AdminAnalyticsPage() {
       weeklyClicks,
       totalCtr: percent(coupangClicks.length, pageViews.length),
       sourceMedium: topEntries(sourceMediumMap),
-      referrers: topEntries(referrerMap),
       campaigns: topEntries(campaignMap),
       shortInflows: topEntries(shortInflowMap),
       blogViews: topEntries(blogViewMap),
@@ -266,6 +277,59 @@ export default function AdminAnalyticsPage() {
       rangeLabel: `${dayLabel(new Date(now.getTime() - 1000 * 60 * 60 * 24 * 30))} ~ ${dayLabel(now)}`,
     };
   }, [events, blogPosts]);
+
+  const pageAnalytics = useMemo(() => {
+    const start = startOfRange(pageRange);
+    const filteredPageViews = events.filter((e) => e.event_name === 'page_view' && new Date(e.created_at) >= start);
+    const sourceMediumMap = {};
+    const campaignMap = {};
+    const shortInflowMap = {};
+    filteredPageViews.forEach((e) => {
+      const key = `${e.source || 'direct'} / ${e.medium || 'none'}`;
+      sourceMediumMap[key] = (sourceMediumMap[key] || 0) + 1;
+      if (e.campaign) campaignMap[e.campaign] = (campaignMap[e.campaign] || 0) + 1;
+      if (e.short_slug) shortInflowMap[e.short_slug] = (shortInflowMap[e.short_slug] || 0) + 1;
+    });
+    return {
+      sourceMedium: topEntries(sourceMediumMap, 10),
+      campaigns: topEntries(campaignMap, 10),
+      shortInflows: topEntries(shortInflowMap, 10),
+      views: filteredPageViews.length,
+    };
+  }, [events, pageRange]);
+
+  const contentAnalytics = useMemo(() => {
+    const start = startOfRange(contentRange);
+    const filteredPageViews = events.filter((e) => e.event_name === 'page_view' && new Date(e.created_at) >= start);
+    const filteredInternalClicks = events.filter((e) => e.event_name === 'internal_click' && new Date(e.created_at) >= start);
+    const blogViewMap = {};
+    const hotdealViewMap = {};
+    const productViewMap = {};
+    const slugTitleMap = new Map(blogPosts.map((post) => [post.slug, post.title || post.slug]));
+
+    const toBlogLabel = (path) => {
+      const slug = String(path || '').replace(/^\/blog\//, '');
+      return slugTitleMap.get(slug) || decodeURIComponent(slug || path || '');
+    };
+
+    filteredPageViews.forEach((e) => {
+      const path = String(e.page_path || '');
+      if (path.startsWith('/blog/')) {
+        const label = toBlogLabel(path);
+        blogViewMap[label] = (blogViewMap[label] || 0) + 1;
+      }
+      if (path.startsWith('/deal/')) hotdealViewMap[path] = (hotdealViewMap[path] || 0) + 1;
+      if (path.startsWith('/coupang/')) productViewMap[path] = (productViewMap[path] || 0) + 1;
+    });
+
+    return {
+      blogViews: topEntries(blogViewMap, 10),
+      hotdealViews: topEntries(hotdealViewMap, 10),
+      productViews: topEntries(productViewMap, 10),
+      internalMoveRate: percent(filteredInternalClicks.length, filteredPageViews.length),
+      views: filteredPageViews.length,
+    };
+  }, [blogPosts, contentRange, events]);
 
   const cardClass = 'rounded-3xl border border-gray-100 bg-white p-5 shadow-sm';
   const tableClass = 'w-full text-sm';
@@ -348,21 +412,44 @@ export default function AdminAnalyticsPage() {
 
         <section className={`${cardClass} md:col-span-2`}>
           <h2 className="mb-3 text-sm font-bold text-gray-700">페이지 분석</h2>
+          <div className="mb-3 flex items-center gap-2">
+            {['today', 'week', 'month'].map((key) => (
+              <button
+                key={key}
+                onClick={() => setPageRange(key)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${pageRange === key ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {rangeLabel(key)}
+              </button>
+            ))}
+            <span className="text-[11px] text-gray-400">{pageAnalytics.views} views</span>
+          </div>
           <div className="grid gap-3 text-xs md:grid-cols-2">
-            <div><div className="mb-1 font-semibold text-gray-500">source / medium</div>{analytics.sourceMedium.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
-            <div><div className="mb-1 font-semibold text-gray-500">referrer</div>{analytics.referrers.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
-            <div><div className="mb-1 font-semibold text-gray-500">UTM campaign</div>{analytics.campaigns.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
-            <div><div className="mb-1 font-semibold text-gray-500">단축링크별 유입</div>{analytics.shortInflows.slice(0, 6).map((x) => <div key={x.key} className="text-gray-700">/s/{x.key} · {x.value}</div>)}</div>
+            <div><div className="mb-1 font-semibold text-gray-500">source / medium</div>{pageAnalytics.sourceMedium.slice(0, 10).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
+            <div><div className="mb-1 font-semibold text-gray-500">UTM campaign</div>{pageAnalytics.campaigns.slice(0, 10).map((x) => <div key={x.key} className="text-gray-700">{x.key} · {x.value}</div>)}</div>
+            <div className="md:col-span-2"><div className="mb-1 font-semibold text-gray-500">단축링크별 유입</div>{pageAnalytics.shortInflows.slice(0, 10).map((x) => <div key={x.key} className="text-gray-700">/s/{x.key} · {x.value}</div>)}</div>
           </div>
         </section>
 
         <section className={`${cardClass} md:col-span-2`}>
           <h2 className="mb-3 text-sm font-bold text-gray-700">콘텐츠 분석</h2>
+          <div className="mb-3 flex items-center gap-2">
+            {['today', 'week', 'month'].map((key) => (
+              <button
+                key={key}
+                onClick={() => setContentRange(key)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${contentRange === key ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {rangeLabel(key)}
+              </button>
+            ))}
+            <span className="text-[11px] text-gray-400">{contentAnalytics.views} views</span>
+          </div>
           <div className="grid gap-3 text-xs md:grid-cols-2">
-            <div><div className="font-semibold text-gray-500">블로그 글별 조회수</div>{analytics.blogViews.slice(0, 6).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
-            <div><div className="font-semibold text-gray-500">핫딜 페이지별 조회수</div>{analytics.hotdealViews.slice(0, 6).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
-            <div><div className="font-semibold text-gray-500">상품 페이지별 조회수</div>{analytics.productViews.slice(0, 6).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
-            <div><div className="font-semibold text-gray-500">내부 이동률</div><div>{analytics.internalMoveRate}%</div></div>
+            <div><div className="font-semibold text-gray-500">블로그 글별 조회수</div>{contentAnalytics.blogViews.slice(0, 10).map((x) => <div key={x.key} className="truncate">{x.key} · {x.value}</div>)}</div>
+            <div><div className="font-semibold text-gray-500">핫딜 페이지별 조회수</div>{contentAnalytics.hotdealViews.slice(0, 10).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
+            <div><div className="font-semibold text-gray-500">상품 페이지별 조회수</div>{contentAnalytics.productViews.slice(0, 10).map((x) => <div key={x.key}>{x.key} · {x.value}</div>)}</div>
+            <div><div className="font-semibold text-gray-500">내부 이동률</div><div>{contentAnalytics.internalMoveRate}%</div></div>
           </div>
         </section>
 
