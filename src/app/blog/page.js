@@ -32,7 +32,7 @@ export const revalidate = 60;
 async function getData() {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const [postsRes, catsRes] = await Promise.all([
+  const [postsResInitial, catsRes] = await Promise.all([
     supabase
       .from('blog_posts')
       .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, thumbnail_url, og_image_url')
@@ -43,6 +43,35 @@ async function getData() {
       .select('*')
       .order('sort_order', { ascending: true }),
   ]);
+
+  let postsRes = postsResInitial;
+  if (postsResInitial?.error) {
+    const msg = `${postsResInitial.error.message || ''} ${postsResInitial.error.details || ''}`.toLowerCase();
+    const missingThumbCols =
+      msg.includes('thumbnail_url') ||
+      msg.includes('og_image_url') ||
+      postsResInitial.error.code === '42703' ||
+      postsResInitial.error.code === 'PGRST204';
+
+    if (missingThumbCols) {
+      const fallbackRes = await supabase
+        .from('blog_posts')
+        .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+
+      if (!fallbackRes.error) {
+        postsRes = {
+          ...fallbackRes,
+          data: (fallbackRes.data || []).map((item) => ({
+            ...item,
+            thumbnail_url: null,
+            og_image_url: null,
+          })),
+        };
+      }
+    }
+  }
 
   const now = new Date();
   const posts = (postsRes.data || []).filter((post) => {
