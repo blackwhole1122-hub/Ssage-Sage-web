@@ -323,16 +323,18 @@ export default function DealDetailPage({ params: promiseParams }) {
           <div className="mb-4 space-y-3">
             {matchedBlogCtas.map((item) => (
               <div key={`${item.slug}-${item.keyword}`} className="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
-                <p className="text-[13px] text-[#1E3A8A] leading-relaxed">
-                  지금 보고 있는 <span className="font-bold">[{item.keyword}]</span>,{' '}
-                  {item.message || `${item.keyword} 관련 비교 정보를 정리한 글이 있어요.`}
-                </p>
-                <a
-                  href={`/blog/${item.slug}`}
-                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-[#2563EB] px-4 py-2 text-[13px] font-bold text-white hover:bg-[#1D4ED8]"
-                >
-                  바로보기
-                </a>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-[13px] text-[#1E3A8A] leading-relaxed">
+                    지금 보고 있는 <span className="font-bold">[{item.keyword}]</span>,{' '}
+                    {item.message || `${item.keyword} 관련 비교 정보를 정리한 글이 있어요.`}
+                  </p>
+                  <a
+                    href={`/blog/${item.slug}`}
+                    className="inline-flex shrink-0 items-center justify-center rounded-xl bg-[#2563EB] px-4 py-2 text-[13px] font-bold text-white hover:bg-[#1D4ED8]"
+                  >
+                    바로보기
+                  </a>
+                </div>
               </div>
             ))}
           </div>
