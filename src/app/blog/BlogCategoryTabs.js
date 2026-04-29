@@ -70,7 +70,7 @@ export default function BlogCategoryTabs({
 
   return (
     <div>
-      {/* 移댄뀒怨좊━ ??*/}
+      {/* 카테고리 탭 */}
       <nav className="flex gap-2 mb-8 overflow-x-auto pb-2 scrollbar-hide">
         <button
           onClick={() => {
@@ -107,12 +107,12 @@ export default function BlogCategoryTabs({
         ))}
       </nav>
 
-      {/* 釉붾줈洹?湲 紐⑸줉 洹몃━??*/}
+      {/* 블로그 글 목록 그리드 */}
       {filteredPosts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredPosts.map((post) => {
             const category = categories.find((c) => c.id === post.category_id);
-            const icon = post.emoji || CATEGORY_ICONS[category?.name] || '?뱷';
+            const icon = post.emoji || CATEGORY_ICONS[category?.name] || '📝';
             const hoverBg = CATEGORY_COLORS[category?.name] || 'group-hover:bg-[#E6FAF9]';
             const thumb = post.thumbnail_url || post.og_image_url || '';
 
@@ -167,12 +167,12 @@ export default function BlogCategoryTabs({
         </div>
       ) : (
         <div className="py-20 text-center bg-white rounded-2xl border border-[#E2E8F0]">
-          <span className="text-4xl block mb-3">??</span>
+          <span className="text-4xl block mb-3">🗂️</span>
           <p className="text-[15px] font-semibold text-[#1E293B]">
-            ??移댄뀒怨좊━?먮뒗 ?꾩쭅 湲???놁뼱??
+            이 카테고리에는 아직 글이 없어요.
           </p>
           <p className="text-[13px] text-[#64748B] mt-1">
-            怨??좎슜???뺣낫媛 ?щ씪???덉젙?댁뿉??
+            곧 유용한 정보가 올라올 예정이에요.
           </p>
         </div>
       )}

@@ -7,12 +7,14 @@ const SKIP_DIRS = new Set(['node_modules', '.next', '.git']);
 const EXT_ALLOW = new Set(['.js', '.jsx', '.ts', '.tsx', '.json', '.md', '.css', '.html', '.txt']);
 
 const suspectRegexes = [
-  /\?꾩껜/g,
-  /媛寃\?/g,
-  /\?뮶/g,
-  /\?덉빟/g,
-  /�/g,
-  /[\u00C0-\u024F]{2,}/g,
+  /\?꾩껜/,
+  /媛寃\?/,
+  /\?뮶/,
+  /\?덉빟/,
+  /�/,
+  /\?\?[가-힣A-Za-z0-9]/,
+  /[가-힣A-Za-z0-9]\?\?/,
+  /[ÃÂÅÐØÞ]{2,}/,
 ];
 
 function walk(dir, out = []) {
