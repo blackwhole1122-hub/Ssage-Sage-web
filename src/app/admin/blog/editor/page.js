@@ -2085,7 +2085,7 @@ function BlogEditorInner() {
                   type="text"
                   value={ctaKeyword}
                   onChange={(e) => setCtaKeyword(e.target.value)}
-                  placeholder="키워드 예: 두유"
+                  placeholder="키워드(콤마 구분) 예: 제로펩시, 펩시제로"
                   className="text-sm bg-white border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
                 />
                 <input

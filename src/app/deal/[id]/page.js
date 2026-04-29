@@ -31,6 +31,12 @@ export default function DealDetailPage({ params: promiseParams }) {
       .map((item) => item.trim().toLowerCase())
       .filter(Boolean);
 
+  const parseMatchKeywords = (raw = '') =>
+    String(raw || '')
+      .split(',')
+      .map((item) => normalizeText(item))
+      .filter(Boolean);
+
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
       router.back();
@@ -64,13 +70,14 @@ export default function DealDetailPage({ params: promiseParams }) {
         if (Array.isArray(ctaPosts) && ctaPosts.length > 0) {
           const now = Date.now();
           const matched = ctaPosts.filter((post) => {
-            const keyword = normalizeText(post?.cta_keyword || '');
-            if (!keyword) return false;
+            const keywords = parseMatchKeywords(post?.cta_keyword || '');
+            if (keywords.length === 0) return false;
 
             const scheduledAt = post?.scheduled_at ? new Date(post.scheduled_at).getTime() : null;
             if (scheduledAt && Number.isFinite(scheduledAt) && scheduledAt > now) return false;
 
-            if (!haystack.includes(keyword)) return false;
+            const hitKeyword = keywords.find((kw) => haystack.includes(kw));
+            if (!hitKeyword) return false;
 
             const excludes = parseExcludeKeywords(post?.cta_exclude_keywords);
             if (excludes.length > 0 && excludes.some((kw) => haystack.includes(kw))) return false;
@@ -82,7 +89,9 @@ export default function DealDetailPage({ params: promiseParams }) {
             setMatchedBlogCtas(
               matched.map((item) => ({
                 slug: item.slug,
-                keyword: String(item.cta_keyword || '').trim(),
+                keyword:
+                  parseMatchKeywords(item.cta_keyword || '').find((kw) => haystack.includes(kw)) ||
+                  String(item.cta_keyword || '').trim(),
                 message: String(item.cta_message || '').trim(),
                 title: item.title,
               }))
