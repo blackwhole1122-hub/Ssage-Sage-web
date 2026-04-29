@@ -9,6 +9,7 @@ import DOMPurify from 'dompurify';
 export default function DealDetailPage({ params: promiseParams }) {
   const params = use(promiseParams);
   const [deal, setDeal] = useState(null);
+  const [matchedBlogCta, setMatchedBlogCta] = useState(null);
   const [thermometerInfo, setThermometerInfo] = useState({
     loading: true,
     hasMatchedSlug: false,
@@ -17,6 +18,18 @@ export default function DealDetailPage({ params: promiseParams }) {
   });
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const normalizeText = (value = '') =>
+    String(value || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const parseExcludeKeywords = (raw = '') =>
+    String(raw || '')
+      .split(',')
+      .map((item) => item.trim().toLowerCase())
+      .filter(Boolean);
 
   const handleBack = () => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -38,6 +51,47 @@ export default function DealDetailPage({ params: promiseParams }) {
         console.error('Error:', error);
       } else {
         setDeal(data);
+        const haystack = normalizeText(`${data?.title || ''} ${data?.content || ''} ${data?.shop || ''}`);
+
+        const { data: ctaPosts } = await supabase
+          .from('blog_posts')
+          .select('id, slug, title, cta_keyword, cta_message, cta_exclude_keywords, published, scheduled_at')
+          .eq('published', true)
+          .not('cta_keyword', 'is', null)
+          .order('updated_at', { ascending: false })
+          .limit(300);
+
+        if (Array.isArray(ctaPosts) && ctaPosts.length > 0) {
+          const now = Date.now();
+          const matched = ctaPosts.find((post) => {
+            const keyword = normalizeText(post?.cta_keyword || '');
+            if (!keyword) return false;
+
+            const scheduledAt = post?.scheduled_at ? new Date(post.scheduled_at).getTime() : null;
+            if (scheduledAt && Number.isFinite(scheduledAt) && scheduledAt > now) return false;
+
+            if (!haystack.includes(keyword)) return false;
+
+            const excludes = parseExcludeKeywords(post?.cta_exclude_keywords);
+            if (excludes.length > 0 && excludes.some((kw) => haystack.includes(kw))) return false;
+
+            return true;
+          });
+
+          if (matched) {
+            setMatchedBlogCta({
+              slug: matched.slug,
+              keyword: String(matched.cta_keyword || '').trim(),
+              message: String(matched.cta_message || '').trim(),
+              title: matched.title,
+            });
+          } else {
+            setMatchedBlogCta(null);
+          }
+        } else {
+          setMatchedBlogCta(null);
+        }
+
         const slug = String(data?.group_slug || '').trim();
 
         if (slug) {
@@ -251,6 +305,21 @@ export default function DealDetailPage({ params: promiseParams }) {
                 가격이력 확인하러 가기
               </a>
             )}
+          </div>
+        )}
+
+        {matchedBlogCta?.slug && (
+          <div className="mb-4 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
+            <p className="text-[13px] text-[#1E3A8A] leading-relaxed">
+              지금 보고 있는 <span className="font-bold">[{matchedBlogCta.keyword}]</span>,{' '}
+              {matchedBlogCta.message || `${matchedBlogCta.keyword} 관련 비교 정보를 정리한 글이 있어요.`}
+            </p>
+            <a
+              href={`/blog/${matchedBlogCta.slug}`}
+              className="mt-3 inline-flex items-center justify-center rounded-xl bg-[#2563EB] px-4 py-2 text-[13px] font-bold text-white hover:bg-[#1D4ED8]"
+            >
+              바로보기
+            </a>
           </div>
         )}
 

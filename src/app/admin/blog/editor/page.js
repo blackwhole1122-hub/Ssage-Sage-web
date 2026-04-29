@@ -708,6 +708,9 @@ function buildSnapshot(form) {
     thumbnailUrl: form.thumbnailUrl || '',
     ogImageUrl: form.ogImageUrl || '',
     tags: Array.isArray(form.tags) ? form.tags : [],
+    ctaKeyword: form.ctaKeyword || '',
+    ctaMessage: form.ctaMessage || '',
+    ctaExcludeKeywords: form.ctaExcludeKeywords || '',
     affiliateDisclosure: !!form.affiliateDisclosure,
     editorMode: form.editorMode || 'markdown',
     focusKeyword: form.focusKeyword || '',
@@ -776,6 +779,9 @@ function BlogEditorInner() {
   const [ogImageUrl, setOgImageUrl] = useState('');
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
+  const [ctaKeyword, setCtaKeyword] = useState('');
+  const [ctaMessage, setCtaMessage] = useState('');
+  const [ctaExcludeKeywords, setCtaExcludeKeywords] = useState('');
   const [affiliateDisclosure, setAffiliateDisclosure] = useState(false);
   const [focusKeyword, setFocusKeyword] = useState('');
   const [seoWeights, setSeoWeights] = useState(() => createDefaultSeoWeights());
@@ -864,12 +870,15 @@ function BlogEditorInner() {
       thumbnailUrl,
       ogImageUrl,
       tags,
+      ctaKeyword,
+      ctaMessage,
+      ctaExcludeKeywords,
       affiliateDisclosure,
       editorMode,
       focusKeyword,
       seoWeights,
     });
-  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
+  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -911,6 +920,9 @@ function BlogEditorInner() {
         thumbnailUrl: '',
         ogImageUrl: '',
         tags: [],
+        ctaKeyword: '',
+        ctaMessage: '',
+        ctaExcludeKeywords: '',
         affiliateDisclosure: false,
         editorMode: 'markdown',
         focusKeyword: '',
@@ -942,6 +954,9 @@ function BlogEditorInner() {
             thumbnailUrl: unifiedThumb,
             ogImageUrl: unifiedThumb,
             tags: parseStoredTags(post.tags),
+            ctaKeyword: String(post.cta_keyword || ''),
+            ctaMessage: String(post.cta_message || ''),
+            ctaExcludeKeywords: String(post.cta_exclude_keywords || ''),
             affiliateDisclosure: !!post.affiliate_disclosure,
             focusKeyword: String(post.focus_keyword || parseStoredTags(post.tags)[0] || ''),
             seoWeights: createDefaultSeoWeights(),
@@ -987,6 +1002,9 @@ function BlogEditorInner() {
       setThumbnailUrl(form.thumbnailUrl);
       setOgImageUrl(form.ogImageUrl);
       setTags(form.tags);
+      setCtaKeyword(form.ctaKeyword || '');
+      setCtaMessage(form.ctaMessage || '');
+      setCtaExcludeKeywords(form.ctaExcludeKeywords || '');
       setAffiliateDisclosure(!!form.affiliateDisclosure);
       setEditorMode(form.editorMode || 'markdown');
       setFocusKeyword(form.focusKeyword || '');
@@ -1026,6 +1044,9 @@ function BlogEditorInner() {
             thumbnailUrl,
             ogImageUrl,
             tags,
+            ctaKeyword,
+            ctaMessage,
+            ctaExcludeKeywords,
             affiliateDisclosure,
             editorMode,
             focusKeyword,
@@ -1044,7 +1065,7 @@ function BlogEditorInner() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
+  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -1193,6 +1214,9 @@ function BlogEditorInner() {
       thumbnail_url: thumbnailUrl.trim() || null,
       og_image_url: thumbnailUrl.trim() || null,
       tags: normalizeTagsForDb(),
+      cta_keyword: ctaKeyword.trim() || null,
+      cta_message: ctaMessage.trim() || null,
+      cta_exclude_keywords: ctaExcludeKeywords.trim() || null,
       focus_keyword: focusKeyword.trim() || null,
       affiliate_disclosure: forcedAffiliate === undefined ? !!affiliateDisclosure : !!forcedAffiliate,
     };
@@ -1208,6 +1232,9 @@ function BlogEditorInner() {
       message.includes('og_image_url') ||
       message.includes('tags') ||
       message.includes('focus_keyword') ||
+      message.includes('cta_keyword') ||
+      message.includes('cta_message') ||
+      message.includes('cta_exclude_keywords') ||
       message.includes('seo_title') ||
       message.includes('seo_description') ||
       message.includes('affiliate_disclosure')
@@ -1593,6 +1620,9 @@ function BlogEditorInner() {
       thumbnailUrl,
       ogImageUrl,
       tags,
+      ctaKeyword,
+      ctaMessage,
+      ctaExcludeKeywords,
       affiliateDisclosure: affiliateDisclosure || autoAffiliateDisclosure,
       editorMode,
       focusKeyword,
@@ -2046,6 +2076,36 @@ function BlogEditorInner() {
                 className="text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
               />
               <span className="text-[11px] text-gray-400">SEO signal checks title, description, first paragraph, and headings against this keyword.</span>
+            </div>
+
+            <div className="mt-2 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+              <div className="text-xs font-bold text-gray-600 mb-2">핫딜 상세 하단 자동 문구 (키워드 매칭)</div>
+              <div className="grid gap-2">
+                <input
+                  type="text"
+                  value={ctaKeyword}
+                  onChange={(e) => setCtaKeyword(e.target.value)}
+                  placeholder="키워드 예: 두유"
+                  className="text-sm bg-white border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
+                />
+                <input
+                  type="text"
+                  value={ctaMessage}
+                  onChange={(e) => setCtaMessage(e.target.value)}
+                  placeholder="문구 예: 싸게사게에서 제품별로 영양성분 비교했어요."
+                  className="text-sm bg-white border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
+                />
+                <input
+                  type="text"
+                  value={ctaExcludeKeywords}
+                  onChange={(e) => setCtaExcludeKeywords(e.target.value)}
+                  placeholder="제외 키워드(콤마 구분) 예: 할인권, 사은품"
+                  className="text-sm bg-white border border-gray-200 rounded-xl px-3 py-2 text-gray-700"
+                />
+              </div>
+              <div className="mt-2 text-[11px] text-gray-500">
+                저장 후, 핫딜 제목/본문에 키워드가 매칭되고 제외 키워드가 없으면 상세 하단에 자동 노출됩니다.
+              </div>
             </div>
           </div>
         </div>
