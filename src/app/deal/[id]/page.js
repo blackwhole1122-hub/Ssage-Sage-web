@@ -9,7 +9,7 @@ import DOMPurify from 'dompurify';
 export default function DealDetailPage({ params: promiseParams }) {
   const params = use(promiseParams);
   const [deal, setDeal] = useState(null);
-  const [matchedBlogCta, setMatchedBlogCta] = useState(null);
+  const [matchedBlogCtas, setMatchedBlogCtas] = useState([]);
   const [thermometerInfo, setThermometerInfo] = useState({
     loading: true,
     hasMatchedSlug: false,
@@ -63,7 +63,7 @@ export default function DealDetailPage({ params: promiseParams }) {
 
         if (Array.isArray(ctaPosts) && ctaPosts.length > 0) {
           const now = Date.now();
-          const matched = ctaPosts.find((post) => {
+          const matched = ctaPosts.filter((post) => {
             const keyword = normalizeText(post?.cta_keyword || '');
             if (!keyword) return false;
 
@@ -78,18 +78,20 @@ export default function DealDetailPage({ params: promiseParams }) {
             return true;
           });
 
-          if (matched) {
-            setMatchedBlogCta({
-              slug: matched.slug,
-              keyword: String(matched.cta_keyword || '').trim(),
-              message: String(matched.cta_message || '').trim(),
-              title: matched.title,
-            });
+          if (matched.length > 0) {
+            setMatchedBlogCtas(
+              matched.map((item) => ({
+                slug: item.slug,
+                keyword: String(item.cta_keyword || '').trim(),
+                message: String(item.cta_message || '').trim(),
+                title: item.title,
+              }))
+            );
           } else {
-            setMatchedBlogCta(null);
+            setMatchedBlogCtas([]);
           }
         } else {
-          setMatchedBlogCta(null);
+          setMatchedBlogCtas([]);
         }
 
         const slug = String(data?.group_slug || '').trim();
@@ -308,18 +310,22 @@ export default function DealDetailPage({ params: promiseParams }) {
           </div>
         )}
 
-        {matchedBlogCta?.slug && (
-          <div className="mb-4 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
-            <p className="text-[13px] text-[#1E3A8A] leading-relaxed">
-              지금 보고 있는 <span className="font-bold">[{matchedBlogCta.keyword}]</span>,{' '}
-              {matchedBlogCta.message || `${matchedBlogCta.keyword} 관련 비교 정보를 정리한 글이 있어요.`}
-            </p>
-            <a
-              href={`/blog/${matchedBlogCta.slug}`}
-              className="mt-3 inline-flex items-center justify-center rounded-xl bg-[#2563EB] px-4 py-2 text-[13px] font-bold text-white hover:bg-[#1D4ED8]"
-            >
-              바로보기
-            </a>
+        {matchedBlogCtas.length > 0 && (
+          <div className="mb-4 space-y-3">
+            {matchedBlogCtas.map((item) => (
+              <div key={`${item.slug}-${item.keyword}`} className="rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] p-4">
+                <p className="text-[13px] text-[#1E3A8A] leading-relaxed">
+                  지금 보고 있는 <span className="font-bold">[{item.keyword}]</span>,{' '}
+                  {item.message || `${item.keyword} 관련 비교 정보를 정리한 글이 있어요.`}
+                </p>
+                <a
+                  href={`/blog/${item.slug}`}
+                  className="mt-3 inline-flex items-center justify-center rounded-xl bg-[#2563EB] px-4 py-2 text-[13px] font-bold text-white hover:bg-[#1D4ED8]"
+                >
+                  바로보기
+                </a>
+              </div>
+            ))}
           </div>
         )}
 
