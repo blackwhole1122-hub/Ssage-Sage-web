@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { calculateGrade } from '@/lib/priceUtils';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
+import { buildThermometerMeta } from '@/lib/seoTemplates';
  
 const categoryOrder = ['식품', '생활잡화', '가전/디지털', '상품권'];
 const foodSubOrder = ['가공식품', '음료/탄산', '음료', '음료/에너지음료', '생수', '디저트/아이스크림', '신선식품', '쌀/잡곡', '영양제'];
@@ -12,6 +13,12 @@ const categoryIcons = {
   '가전/디지털': '📺',
   상품권: '🎫',
 };
+
+export const metadata = buildThermometerMeta({
+  title: '핫딜온도계',
+  description: '상품별 가격 이력과 기준가를 비교해 지금 구매해도 괜찮은지 빠르게 판단하세요.',
+  path: '/hotdeal-thermometer',
+});
 
 export const revalidate = 300;
 

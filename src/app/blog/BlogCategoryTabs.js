@@ -83,7 +83,7 @@ export default function BlogCategoryTabs({
               : 'bg-[#FAF6F0] text-[#64748B] hover:bg-[#F0EAE0] hover:text-[#1E293B]'
           }`}
         >
-          ?꾩껜
+          전체
         </button>
 
         {categories.map((cat) => (

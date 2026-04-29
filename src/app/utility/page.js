@@ -1,5 +1,12 @@
 import Link from 'next/link';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
+import { buildUtilityMeta } from '@/lib/seoTemplates';
+
+export const metadata = buildUtilityMeta({
+  title: '유틸리티 모음',
+  description: '단위가격, 할인율, 중복할인, 직구세금 등 구매 전에 필요한 계산을 빠르게 확인하세요.',
+  path: '/utility',
+});
 
 export default function UtilityPage() {
   const utilities = [

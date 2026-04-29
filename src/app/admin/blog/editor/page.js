@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -6,42 +6,42 @@ import { supabase } from '@/lib/supabase';
 import { buildExternalRel } from '@/lib/linkRel';
 
 /*
-  선택 기능(DB 저장까지 하려면 blog_posts에 아래 컬럼이 있으면 가장 좋습니다)
+  ?좏깮 湲곕뒫(DB ??κ퉴吏 ?섎젮硫?blog_posts???꾨옒 而щ읆???덉쑝硫?媛??醫뗭뒿?덈떎)
   - thumbnail_url text
   - og_image_url text
-  - tags text[]   (또는 text 로 바꿔서 직접 처리)
+  - tags text[]   (?먮뒗 text 濡?諛붽퓭??吏곸젒 泥섎━)
   - affiliate_disclosure boolean
 
-  이 코드는 위 컬럼이 없어도 저장 자체가 깨지지 않도록
-  "기본 필드로 자동 재시도" fallback을 넣어두었습니다.
+  ??肄붾뱶????而щ읆???놁뼱??????먯껜媛 源⑥?吏 ?딅룄濡?
+  "湲곕낯 ?꾨뱶濡??먮룞 ?ъ떆?? fallback???ｌ뼱?먯뿀?듬땲??
 */
 
 const TOOLBAR = [
-  { label: 'B', wrap: ['**', '**'], title: '굵게' },
-  { label: 'I', wrap: ['*', '*'], title: '기울임' },
-  { label: 'S', wrap: ['~~', '~~'], title: '취소선' },
-  { label: 'H2', prefix: '## ', title: '제목2' },
-  { label: 'H3', prefix: '### ', title: '제목3' },
-  { label: 'H4', prefix: '#### ', title: '제목4' },
-  { label: '`', wrap: ['`', '`'], title: '인라인 코드' },
+  { label: 'B', wrap: ['**', '**'], title: 'Bold' },
+  { label: 'I', wrap: ['*', '*'], title: 'Italic' },
+  { label: 'S', wrap: ['~~', '~~'], title: 'Strike' },
+  { label: 'H2', prefix: '## ', title: 'Heading 2' },
+  { label: 'H3', prefix: '### ', title: 'Heading 3' },
+  { label: 'H4', prefix: '#### ', title: 'Heading 4' },
+  { label: '`', wrap: ['`', '`'], title: 'Inline code' },
   {
     label: '{ }',
     block: '```js\nconsole.log(\'hello\')\n```',
-    title: '코드블록',
+    title: 'Code block',
   },
-  { label: '•', prefix: '- ', title: '목록' },
-  { label: '1.', prefix: '1. ', title: '번호 목록' },
-  { label: '☑', prefix: '- [ ] ', title: '체크리스트' },
-  { label: '💬', prefix: '> ', title: '인용' },
+  { label: '•', prefix: '- ', title: 'List' },
+  { label: '1.', prefix: '1. ', title: 'Ordered list' },
+  { label: '☑', prefix: '- [ ] ', title: 'Checklist' },
+  { label: '"', prefix: '> ', title: 'Quote' },
   {
     label: '표',
     block: '| 항목 | 내용 |\n| --- | --- |\n| 예시 | 값 |',
-    title: '표',
+    title: 'Table',
   },
-  { label: '---', line: '---', title: '구분선' },
+  { label: '---', line: '---', title: 'Divider' },
 ];
 
-const EMOJIS = ['📝', '🔥', '💡', '🎉', '🚀', '📦', '🛒', '💰', '⚡', '🎯', '📊', '🔧', '✨', '🌟', '📌', '🏷️'];
+const EMOJIS = ['📝', '🔥', '✨', '🎉', '✅', '📦', '💡', '🔍', '📊', '🎯', '🛒', '💰', '⚡', '🧠', '🍀', '🏷️'];
 
 const SEO_CHECK_KEYS = [
   'title',
@@ -115,7 +115,7 @@ function generateSlug(text = '') {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/[^a-z0-9\\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .slice(0, 80);
@@ -125,7 +125,7 @@ function slugifyText(text = '') {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/[^a-z0-9\\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 }
@@ -207,7 +207,7 @@ function normalizeAltText(value = '') {
   return value
     .toLowerCase()
     .replace(/[-_]+/g, ' ')
-    .replace(/[^a-z0-9가-힣\s]/gi, ' ')
+    .replace(/[^a-z0-9\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -322,23 +322,23 @@ function getSeoChecks({ title, description, slug, content, textStats, headingLis
   const keywordInHeading = normalizedFocusKeyword ? headingText.includes(normalizedFocusKeyword) : false;
 
   const actionByKey = {
-    title: '제목을 20~60자로 맞추고 핵심 키워드를 앞부분에 배치하세요.',
-    description: '설명을 120~160자로 늘리고, 검색자가 얻을 이득을 한 문장으로 넣어주세요.',
-    slug: 'slug는 짧고 명확하게, 공백 없이 하이픈(-)만 사용하세요.',
-    content: `본문이 짧아요. 최소 ${Math.max(220 - textStats.words, 1)}단어 정도 추가해 핵심 정보를 보강하세요.`,
-    headings: `H2/H3를 최소 ${Math.max(2 - headingList.length, 1)}개 더 추가해 문서 구조를 나누세요.`,
-    'internal-links': '내 사이트의 관련 글/페이지로 내부 링크를 1개 이상 추가하세요.',
-    'external-links': '공식 문서, 브랜드 페이지 같은 신뢰 가능한 외부 출처 링크를 1개 이상 추가하세요.',
-    images: '모든 이미지에 alt를 작성하세요. alt는 이미지 내용을 설명하는 짧은 문장이어야 합니다.',
-    'alt-length': 'alt 길이를 8~125자 범위로 맞추세요. 너무 짧거나 긴 alt를 수정하세요.',
-    'alt-duplicate': '같은 alt를 반복하지 말고 이미지마다 다른 설명으로 바꿔주세요.',
-    'alt-filename': '파일명 복붙 대신 실제 장면/의미를 설명하는 alt로 바꿔주세요.',
-    'keyword-input': '포커스 키워드를 1개 지정하세요. 제목/설명/첫문단/헤딩 점검 기준이 됩니다.',
-    'keyword-title': '포커스 키워드를 제목에 자연스럽게 1회 포함하세요.',
-    'keyword-description': '포커스 키워드를 설명(메타 설명)에 1회 포함하세요.',
-    'keyword-first-paragraph': '포커스 키워드를 첫 문단(초반 2~3문장) 안에 포함하세요.',
-    'keyword-heading': 'H2/H3 중 최소 1개에 포커스 키워드(또는 매우 가까운 표현)를 넣으세요.',
-    tags: '태그를 1개 이상 추가해 주제를 명확히 분류하세요.',
+    title: '?쒕ぉ??20~60?먮줈 留욎텛怨??듭떖 ?ㅼ썙?쒕? ?욌?遺꾩뿉 諛곗튂?섏꽭??',
+    description: '?ㅻ챸??120~160?먮줈 ?섎━怨? 寃?됱옄媛 ?살쓣 ?대뱷????臾몄옣?쇰줈 ?ｌ뼱二쇱꽭??',
+    slug: 'slug??吏㏐퀬 紐낇솗?섍쾶, 怨듬갚 ?놁씠 ?섏씠??-)留??ъ슜?섏꽭??',
+    content: `蹂몃Ц??吏㏃븘?? 理쒖냼 ${Math.max(220 - textStats.words, 1)}?⑥뼱 ?뺣룄 異붽????듭떖 ?뺣낫瑜?蹂닿컯?섏꽭??`,
+    headings: `H2/H3瑜?理쒖냼 ${Math.max(2 - headingList.length, 1)}媛???異붽???臾몄꽌 援ъ“瑜??섎늻?몄슂.`,
+    'internal-links': '???ъ씠?몄쓽 愿??湲/?섏씠吏濡??대? 留곹겕瑜?1媛??댁긽 異붽??섏꽭??',
+    'external-links': '怨듭떇 臾몄꽌, 釉뚮옖???섏씠吏 媛숈? ?좊ː 媛?ν븳 ?몃? 異쒖쿂 留곹겕瑜?1媛??댁긽 異붽??섏꽭??',
+    images: '紐⑤뱺 ?대?吏??alt瑜??묒꽦?섏꽭?? alt???대?吏 ?댁슜???ㅻ챸?섎뒗 吏㏃? 臾몄옣?댁뼱???⑸땲??',
+    'alt-length': 'alt 湲몄씠瑜?8~125??踰붿쐞濡?留욎텛?몄슂. ?덈Т 吏㏐굅??湲?alt瑜??섏젙?섏꽭??',
+    'alt-duplicate': '媛숈? alt瑜?諛섎났?섏? 留먭퀬 ?대?吏留덈떎 ?ㅻⅨ ?ㅻ챸?쇰줈 諛붽퓭二쇱꽭??',
+    'alt-filename': '?뚯씪紐?蹂듬텤 ????ㅼ젣 ?λ㈃/?섎?瑜??ㅻ챸?섎뒗 alt濡?諛붽퓭二쇱꽭??',
+    'keyword-input': '?ъ빱???ㅼ썙?쒕? 1媛?吏?뺥븯?몄슂. ?쒕ぉ/?ㅻ챸/泥ルЦ???ㅻ뵫 ?먭? 湲곗????⑸땲??',
+    'keyword-title': '?ъ빱???ㅼ썙?쒕? ?쒕ぉ???먯뿰?ㅻ읇寃?1???ы븿?섏꽭??',
+    'keyword-description': '?ъ빱???ㅼ썙?쒕? ?ㅻ챸(硫뷀? ?ㅻ챸)??1???ы븿?섏꽭??',
+    'keyword-first-paragraph': '?ъ빱???ㅼ썙?쒕? 泥?臾몃떒(珥덈컲 2~3臾몄옣) ?덉뿉 ?ы븿?섏꽭??',
+    'keyword-heading': 'H2/H3 以?理쒖냼 1媛쒖뿉 ?ъ빱???ㅼ썙???먮뒗 留ㅼ슦 媛源뚯슫 ?쒗쁽)瑜??ｌ쑝?몄슂.',
+    tags: '?쒓렇瑜?1媛??댁긽 異붽???二쇱젣瑜?紐낇솗??遺꾨쪟?섏꽭??',
   };
 
   const priorityByKey = {
@@ -468,7 +468,7 @@ function getSeoChecks({ title, description, slug, content, textStats, headingLis
     },
   ].map((item) => ({
     ...item,
-    action: actionByKey[item.key] || '해당 항목을 보완해주세요.',
+    action: actionByKey[item.key] || '?대떦 ??ぉ??蹂댁셿?댁＜?몄슂.',
     priority: priorityByKey[item.key] || 1,
   }));
 }
@@ -567,7 +567,7 @@ function renderTable(block) {
 }
 
 function markdownToHtml(md = '') {
-  if (!md.trim()) return '<p class="text-gray-300">내용이 없습니다.</p>';
+  if (!md.trim()) return '<p class="text-gray-300">?댁슜???놁뒿?덈떎.</p>';
 
   let text = md.replace(/\r\n/g, '\n');
   const codeBlocks = [];
@@ -581,7 +581,7 @@ function markdownToHtml(md = '') {
         <div class="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs text-gray-300">
           <span>${escapeHtml(language || 'code')}</span>
           <button type="button" data-copy="${encoded}" class="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white hover:bg-white/20">
-            복사
+            蹂듭궗
           </button>
         </div>
         <pre class="overflow-x-auto p-4 text-sm leading-6 text-gray-100"><code>${escapeHtml(code)}</code></pre>
@@ -637,7 +637,7 @@ function markdownToHtml(md = '') {
         <section class="my-5 rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-4">
           <h3 class="mb-2 text-[15px] font-bold text-emerald-800">${formatInline(title)}</h3>
           <ul class="space-y-1.5">
-            ${items.map((item) => `<li class="flex items-start gap-2 text-[14px] text-emerald-900"><span class="mt-0.5 text-emerald-600">☑</span><span>${formatInline(item)}</span></li>`).join('')}
+            ${items.map((item) => `<li class="flex items-start gap-2 text-[14px] text-emerald-900"><span class="mt-0.5 text-emerald-600">✓</span><span>${formatInline(item)}</span></li>`).join('')}
           </ul>
         </section>
       `;
@@ -650,7 +650,7 @@ function markdownToHtml(md = '') {
           ${checklistLines.map((line) => {
             const checked = /^- \[x\]/.test(line.trim());
             const label = line.replace(/^- \[( |x)\]\s*/, '');
-            return `<li class="flex items-start gap-3 text-gray-700"><span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${checked ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white text-transparent'}">✓</span><span>${formatInline(label)}</span></li>`;
+            return `<li class="flex items-start gap-3 text-gray-700"><span class="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full border text-xs ${checked ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white text-transparent'}">??/span><span>${formatInline(label)}</span></li>`;
           }).join('')}
         </ul>
       `;
@@ -696,10 +696,12 @@ function extractHeadings(content = '') {
 function buildSnapshot(form) {
   return JSON.stringify({
     title: form.title || '',
+    seoTitle: form.seoTitle || '',
     slug: form.slug || '',
     description: form.description || '',
+    seoDescription: form.seoDescription || '',
     content: form.content || '',
-    emoji: form.emoji || '📝',
+    emoji: form.emoji || '?뱷',
     published: !!form.published,
     categoryId: String(form.categoryId || ''),
     scheduledAt: form.scheduledAt || '',
@@ -753,14 +755,16 @@ function BlogEditorInner() {
   const slugTimerRef = useRef(null);
 
   const [title, setTitle] = useState('');
+  const [seoTitle, setSeoTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [slugManual, setSlugManual] = useState(false);
   const [slugStatus, setSlugStatus] = useState('idle');
   const [slugMessage, setSlugMessage] = useState('');
 
   const [description, setDescription] = useState('');
+  const [seoDescription, setSeoDescription] = useState('');
   const [content, setContent] = useState('');
-  const [emoji, setEmoji] = useState('📝');
+  const [emoji, setEmoji] = useState('?뱷');
   const [published, setPublished] = useState(false);
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState([]);
@@ -848,8 +852,10 @@ function BlogEditorInner() {
   const currentSnapshot = useMemo(() => {
     return buildSnapshot({
       title,
+      seoTitle,
       slug,
       description,
+      seoDescription,
       content,
       emoji,
       published,
@@ -863,7 +869,7 @@ function BlogEditorInner() {
       focusKeyword,
       seoWeights,
     });
-  }, [title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
+  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -892,10 +898,12 @@ function BlogEditorInner() {
 
       let form = {
         title: '',
+        seoTitle: '',
         slug: '',
         description: '',
+        seoDescription: '',
         content: '',
-        emoji: '📝',
+        emoji: '?뱷',
         published: false,
         categoryId: '',
         scheduledAt: '',
@@ -921,10 +929,12 @@ function BlogEditorInner() {
           const unifiedThumb = post.thumbnail_url || post.og_image_url || '';
           form = {
             title: post.title || '',
+            seoTitle: post.seo_title || '',
             slug: post.slug || '',
             description: post.description || '',
+            seoDescription: post.seo_description || '',
             content: post.content || '',
-            emoji: post.emoji || '📝',
+            emoji: post.emoji || '?뱷',
             published: !!post.published,
             categoryId: String(post.category_id || ''),
             scheduledAt: post.scheduled_at ? toLocalDateTimeValue(post.scheduled_at) : '',
@@ -948,7 +958,7 @@ function BlogEditorInner() {
           const serverSnapshot = buildSnapshot(form);
 
           if (draftSnapshot && draftSnapshot !== serverSnapshot) {
-            const shouldRestore = window.confirm('이전에 자동 임시저장된 내용이 있어요. 복구할까요?');
+            const shouldRestore = window.confirm('?댁쟾???먮룞 ?꾩떆??λ맂 ?댁슜???덉뼱?? 蹂듦뎄?좉퉴??');
             if (shouldRestore && draft.form) {
               form = {
                 ...form,
@@ -960,12 +970,14 @@ function BlogEditorInner() {
           }
         }
       } catch (error) {
-        console.error('임시저장 복구 실패:', error);
+        console.error('?꾩떆???蹂듦뎄 ?ㅽ뙣:', error);
       }
 
       setTitle(form.title);
+      setSeoTitle(form.seoTitle || '');
       setSlug(form.slug);
       setDescription(form.description);
+      setSeoDescription(form.seoDescription || '');
       setContent(form.content);
       setEmoji(form.emoji);
       setPublished(form.published);
@@ -1002,8 +1014,10 @@ function BlogEditorInner() {
         const payload = {
           form: {
             title,
+            seoTitle,
             slug,
             description,
+            seoDescription,
             content,
             emoji,
             published,
@@ -1023,14 +1037,14 @@ function BlogEditorInner() {
         localStorage.setItem(draftKey, JSON.stringify(payload));
         setAutosavedAt(Date.now());
       } catch (error) {
-        console.error('임시저장 실패:', error);
+        console.error('?꾩떆????ㅽ뙣:', error);
       }
     }, 800);
 
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, slug, description, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
+  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -1051,7 +1065,7 @@ function BlogEditorInner() {
     }
 
     setSlugStatus('checking');
-    setSlugMessage('슬러그 확인 중...');
+    setSlugMessage('?щ윭洹??뺤씤 以?..');
 
     if (slugTimerRef.current) clearTimeout(slugTimerRef.current);
 
@@ -1065,17 +1079,17 @@ function BlogEditorInner() {
 
       if (error) {
         setSlugStatus('error');
-        setSlugMessage('슬러그 확인에 실패했어요.');
+        setSlugMessage('?щ윭洹??뺤씤???ㅽ뙣?덉뼱??');
         return;
       }
 
       const taken = (data || []).some((row) => String(row.id) !== String(editId || ''));
       if (taken) {
         setSlugStatus('taken');
-        setSlugMessage('이미 사용 중인 슬러그예요.');
+        setSlugMessage('?대? ?ъ슜 以묒씤 ?щ윭洹몄삁??');
       } else {
         setSlugStatus('available');
-        setSlugMessage('사용 가능한 슬러그예요.');
+        setSlugMessage('?ъ슜 媛?ν븳 ?щ윭洹몄삁??');
       }
     }, 400);
 
@@ -1174,6 +1188,8 @@ function BlogEditorInner() {
     const forcedAffiliate = options.forceAffiliateDisclosure;
     return {
       ...basePayload,
+      seo_title: seoTitle.trim() || null,
+      seo_description: seoDescription.trim() || null,
       thumbnail_url: thumbnailUrl.trim() || null,
       og_image_url: thumbnailUrl.trim() || null,
       tags: normalizeTagsForDb(),
@@ -1192,7 +1208,9 @@ function BlogEditorInner() {
       message.includes('og_image_url') ||
       message.includes('tags') ||
       message.includes('focus_keyword') ||
-      message.includes('affiliate_disclosure')
+      message.includes('affiliate_disclosure') ||
+      message.includes('seo_title') ||
+      message.includes('seo_description')
     );
   }
 
@@ -1221,7 +1239,7 @@ function BlogEditorInner() {
         : await supabase.from('blog_posts').insert({ ...basePayload, created_at: new Date().toISOString() });
 
       if (!response.error) {
-        alert('기본 저장은 완료됐어요. 다만 대표이미지/OG/태그/제휴 컬럼이 DB에 없어서 그 값들은 저장되지 않았어요.');
+        alert('湲곕낯 ??μ? ?꾨즺?먯뼱?? ?ㅻ쭔 ??쒖씠誘몄?/OG/?쒓렇/?쒗쑕 而щ읆??DB???놁뼱??洹?媛믩뱾? ??λ릺吏 ?딆븯?댁슂.');
       }
     }
 
@@ -1243,7 +1261,7 @@ function BlogEditorInner() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const defaultAlt = file.name.replace(/\.[^.]+$/, '').trim() || '이미지';
+    const defaultAlt = file.name.replace(/\.[^.]+$/, '').trim() || '?대?吏';
     setPendingContentImage(file);
     setImageAltInput(defaultAlt);
     setImageCaptionInput('');
@@ -1275,7 +1293,7 @@ function BlogEditorInner() {
     if (!pendingContentImage) return;
 
     if (!imageAltInput.trim()) {
-      alert('alt 텍스트를 입력해 주세요.');
+      alert('alt ?띿뒪?몃? ?낅젰??二쇱꽭??');
       return;
     }
 
@@ -1297,7 +1315,7 @@ function BlogEditorInner() {
       });
       closeImageDialog();
     } catch (error) {
-      alert('업로드 실패: ' + error.message);
+      alert('?낅줈???ㅽ뙣: ' + error.message);
     } finally {
       setUploading(false);
 
@@ -1320,7 +1338,7 @@ function BlogEditorInner() {
       const publicUrl = await uploadImageFile(file, 'blog-meta');
       if (type === 'thumbnail') setUnifiedThumbnail(publicUrl);
     } catch (error) {
-      alert('업로드 실패: ' + error.message);
+      alert('?낅줈???ㅽ뙣: ' + error.message);
     } finally {
       setMetaUploading(false);
       if (e.target) e.target.value = '';
@@ -1343,7 +1361,7 @@ function BlogEditorInner() {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('이미지를 불러오지 못했습니다.'));
+        img.onerror = () => reject(new Error('?대?吏瑜?遺덈윭?ㅼ? 紐삵뻽?듬땲??'));
         img.src = thumbnailUrl;
       });
 
@@ -1367,17 +1385,17 @@ function BlogEditorInner() {
       canvas.width = targetW;
       canvas.height = targetH;
       const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('캔버스 생성에 실패했습니다.');
+      if (!ctx) throw new Error('罹붾쾭???앹꽦???ㅽ뙣?덉뒿?덈떎.');
       ctx.drawImage(image, sx, sy, cropW, cropH, 0, 0, targetW, targetH);
 
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.92));
-      if (!blob) throw new Error('이미지 변환에 실패했습니다.');
+      if (!blob) throw new Error('?대?吏 蹂?섏뿉 ?ㅽ뙣?덉뒿?덈떎.');
       const file = new File([blob], `thumb-${Date.now()}.jpg`, { type: 'image/jpeg' });
       const newUrl = await uploadImageFile(file, 'blog-meta');
       setUnifiedThumbnail(newUrl);
       setThumbnailEditorOpen(false);
     } catch (error) {
-      alert(`썸네일 편집 실패: ${error.message}`);
+      alert(`?몃꽕???몄쭛 ?ㅽ뙣: ${error.message}`);
     } finally {
       setMetaUploading(false);
     }
@@ -1430,7 +1448,7 @@ function BlogEditorInner() {
 
   function insertLink(e) {
     e.preventDefault();
-    const url = window.prompt('연결할 URL 주소를 입력하세요 (http:// 포함)');
+    const url = window.prompt('?곌껐??URL 二쇱냼瑜??낅젰?섏꽭??(http:// ?ы븿)');
     if (!url) return;
     if (hasCoupangLink(url)) setAffiliateDisclosure(true);
 
@@ -1439,7 +1457,7 @@ function BlogEditorInner() {
 
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const selected = content.slice(start, end) || '링크 문구';
+    const selected = content.slice(start, end) || '留곹겕 臾멸뎄';
     const linkMd = `[${selected}](${url})`;
     const newText = content.slice(0, start) + linkMd + content.slice(end);
 
@@ -1457,7 +1475,7 @@ function BlogEditorInner() {
 
     const hasCandidate = linkablePosts.some((post) => post?.slug && post?.title);
     if (!hasCandidate) {
-      alert('연결 가능한 게시글이 없습니다.');
+      alert('?곌껐 媛?ν븳 寃뚯떆湲???놁뒿?덈떎.');
       return;
     }
     setInternalLinkSelection({ start: ta.selectionStart, end: ta.selectionEnd });
@@ -1484,7 +1502,7 @@ function BlogEditorInner() {
 
   async function handleSave(mode = 'default') {
     if (!title.trim() || !slug.trim() || !content.trim()) {
-      return alert('제목, 슬러그, 내용을 모두 입력하세요!');
+      return alert('?쒕ぉ, ?щ윭洹? ?댁슜??紐⑤몢 ?낅젰?섏꽭??');
     }
 
     if (slugStatus === 'taken') {
@@ -1518,7 +1536,7 @@ function BlogEditorInner() {
     if (mode === 'schedule') {
       if (!nextScheduleEnabled || !nextScheduledAt) {
         setSaving(false);
-        return alert('예약발행 시간부터 설정해 주세요.');
+        return alert('예약발행 시간을 설정해 주세요.');
       }
       if (!isFutureDate(nextScheduledAt)) {
         setSaving(false);
@@ -1555,7 +1573,7 @@ function BlogEditorInner() {
     setSaving(false);
 
     if (res.error) {
-      alert(res.error.code === '23505' ? '이미 존재하는 슬러그입니다.' : '저장 실패: ' + res.error.message);
+      alert(res.error.code === '23505' ? '?대? 議댁옱?섎뒗 ?щ윭洹몄엯?덈떎.' : '????ㅽ뙣: ' + res.error.message);
       return;
     }
 
@@ -1563,8 +1581,10 @@ function BlogEditorInner() {
 
     const snapshot = buildSnapshot({
       title,
+      seoTitle,
       slug,
       description,
+      seoDescription,
       content,
       emoji,
       published: basePayload.published,
@@ -1618,18 +1638,18 @@ function BlogEditorInner() {
 
   function insertTextColor(e) {
     e.preventDefault();
-    const color = window.prompt('색상 코드를 입력하세요. 예: #e11d48', '#e11d48');
+    const color = window.prompt('?됱긽 肄붾뱶瑜??낅젰?섏꽭?? ?? #e11d48', '#e11d48');
     if (!color) return;
     wrapSelection(`<span style="color:${color};">`, '</span>');
   }
 
   function insertFontSize(e) {
     e.preventDefault();
-    const size = window.prompt('폰트 크기(px)를 입력하세요. 예: 18', '18');
+    const size = window.prompt('?고듃 ?ш린(px)瑜??낅젰?섏꽭?? ?? 18', '18');
     if (!size) return;
     const px = Number(size);
     if (!Number.isFinite(px) || px < 10 || px > 72) {
-      alert('10~72 사이 숫자를 입력해 주세요.');
+      alert('10~72 ?ъ씠 ?レ옄瑜??낅젰??二쇱꽭??');
       return;
     }
     wrapSelection(`<span style="font-size:${Math.round(px)}px;">`, '</span>');
@@ -1651,7 +1671,7 @@ function BlogEditorInner() {
 
   function insertHtmlTable(e) {
     e.preventDefault();
-    const tableHtml = '\n<table style="width:100%;border-collapse:collapse;">\n  <colgroup>\n    <col style="width:40%;" />\n    <col style="width:60%;" />\n  </colgroup>\n  <thead>\n    <tr>\n      <th style="border:1px solid #cbd5e1;padding:8px;text-align:left;">항목</th>\n      <th style="border:1px solid #cbd5e1;padding:8px;text-align:left;">내용</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td style="border:1px solid #cbd5e1;padding:8px;">예시</td>\n      <td style="border:1px solid #cbd5e1;padding:8px;">값</td>\n    </tr>\n  </tbody>\n</table>\n';
+    const tableHtml = '\n<table style="width:100%;border-collapse:collapse;">\n  <colgroup>\n    <col style="width:40%;" />\n    <col style="width:60%;" />\n  </colgroup>\n  <thead>\n    <tr>\n      <th style="border:1px solid #cbd5e1;padding:8px;text-align:left;">??ぉ</th>\n      <th style="border:1px solid #cbd5e1;padding:8px;text-align:left;">?댁슜</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td style="border:1px solid #cbd5e1;padding:8px;">?덉떆</td>\n      <td style="border:1px solid #cbd5e1;padding:8px;">媛?/td>\n    </tr>\n  </tbody>\n</table>\n';
     const ta = textareaRef.current;
     if (!ta) return;
     const start = ta.selectionStart;
@@ -1666,14 +1686,14 @@ function BlogEditorInner() {
     if (!ta) return;
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
-    const block = '\n:::startbox[이 글을 읽으면 알 수 있어요]\n- 핵심 포인트 1\n- 핵심 포인트 2\n- 핵심 포인트 3\n:::\n';
+    const block = '\n:::startbox[??湲???쎌쑝硫??????덉뼱??\n- ?듭떖 ?ъ씤??1\n- ?듭떖 ?ъ씤??2\n- ?듭떖 ?ъ씤??3\n:::\n';
     const next = content.slice(0, start) + block + content.slice(end);
     setContent(next);
   }
 
   async function handleDelete() {
     if (!editId) return;
-    const confirmed = window.confirm('정말 이 글을 삭제할까요? 삭제 후 복구하기 어려워요.');
+    const confirmed = window.confirm('?뺣쭚 ??湲????젣?좉퉴?? ??젣 ??蹂듦뎄?섍린 ?대젮?뚯슂.');
     if (!confirmed) return;
 
     setDeleting(true);
@@ -1681,7 +1701,7 @@ function BlogEditorInner() {
     setDeleting(false);
 
     if (error) {
-      alert('삭제 실패: ' + error.message);
+      alert('??젣 ?ㅽ뙣: ' + error.message);
       return;
     }
 
@@ -1697,14 +1717,14 @@ function BlogEditorInner() {
 
   async function handleDuplicate() {
     if (!title.trim() || !content.trim()) {
-      return alert('복제하려면 최소한 제목과 내용이 있어야 해요.');
+      return alert('蹂듭젣?섎젮硫?理쒖냼???쒕ぉ怨??댁슜???덉뼱???댁슂.');
     }
 
     setDuplicating(true);
 
     const basePayload = {
       ...createBasePayload(),
-      title: `${title.trim()} (복사본)`,
+      title: `${title.trim()} (蹂듭궗蹂?`,
       slug: `${generateSlug(`${title.trim()} copy`)}-${Date.now().toString().slice(-4)}`,
       published: false,
       scheduled_at: null,
@@ -1722,7 +1742,7 @@ function BlogEditorInner() {
     setDuplicating(false);
 
     if (response.error) {
-      alert('복제 실패: ' + response.error.message);
+      alert('蹂듭젣 ?ㅽ뙣: ' + response.error.message);
       return;
     }
 
@@ -1757,7 +1777,7 @@ function BlogEditorInner() {
     if (copyButton) {
       const code = decodeURIComponent(copyButton.getAttribute('data-copy') || '');
       navigator.clipboard.writeText(code);
-      setPreviewToast('코드가 복사됐어요.');
+      setPreviewToast('肄붾뱶媛 蹂듭궗?먯뼱??');
       return;
     }
 
@@ -1770,7 +1790,7 @@ function BlogEditorInner() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto min-h-screen flex items-center justify-center text-gray-400 text-sm">
-        에디터 준비 중... 🛡️
+        ?먮뵒??以鍮?以?.. ?썳截?
       </div>
     );
   }
@@ -1779,11 +1799,13 @@ function BlogEditorInner() {
     <div className="max-w-4xl mx-auto bg-gray-50 min-h-screen pb-10">
       <header className="bg-white border-b p-4 sticky top-0 z-10 shadow-sm flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={handleBack} className="text-gray-400 hover:text-gray-800 text-xl px-1">←</button>
+          <button onClick={handleBack} className="text-gray-400 hover:text-gray-800 text-xl px-1">{'<'}</button>
           <div>
-            <h1 className="text-lg font-bold text-gray-800">{editId ? '✏️ 글 수정' : '✍️ 새 글 작성'}</h1>
+            <h1 className="text-lg font-bold text-gray-800">{editId ? '블로그 글 수정' : '블로그 새 글 작성'}</h1>
             <p className="text-[11px] text-gray-400 mt-0.5">
-              {autosavedAt ? `자동 임시저장됨 · ${new Date(autosavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}` : '자동 임시저장 대기 중'}
+              {autosavedAt
+                ? `자동 임시저장됨 · ${new Date(autosavedAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`
+                : '자동 임시저장 대기 중'}
             </p>
           </div>
         </div>
@@ -1796,7 +1818,7 @@ function BlogEditorInner() {
             onClick={() => setShowPreview((p) => !p)}
             className={`text-xs px-4 py-2 rounded-full font-bold transition-colors ${showPreview ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
           >
-            {showPreview ? '✏️ 에디터' : '👁️ 미리보기'}
+            {showPreview ? '에디터로 보기' : '미리보기'}
           </button>
           {!editId && (
             <button
@@ -1812,7 +1834,7 @@ function BlogEditorInner() {
               disabled={duplicating}
               className="text-xs px-4 py-2 rounded-full font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
             >
-              {duplicating ? '복제 중...' : '📄 복제'}
+              {duplicating ? '복제 중...' : '글 복제'}
             </button>
           )}
           {editId && (
@@ -1821,7 +1843,7 @@ function BlogEditorInner() {
               disabled={deleting}
               className="text-xs px-4 py-2 rounded-full font-bold bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50"
             >
-              {deleting ? '삭제 중...' : '🗑️ 삭제'}
+              {deleting ? '삭제 중...' : '삭제'}
             </button>
           )}
           <button
@@ -1829,7 +1851,7 @@ function BlogEditorInner() {
             disabled={saving || saved}
             className={`text-xs px-5 py-2 rounded-full font-bold shadow-sm transition-colors ${saved ? 'bg-green-500 text-white' : saving ? 'bg-gray-300 text-gray-500' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
           >
-            {saved ? '✅ 저장됨!' : saving ? '저장 중...' : '💾 저장'}
+            {saved ? '저장됨!' : saving ? '저장 중...' : '저장'}
           </button>
         </div>
       </header>
@@ -1869,10 +1891,10 @@ function BlogEditorInner() {
               />
               <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-gray-400">
                 <span>제목 {title.trim().length}자</span>
-                <span>·</span>
+                <span>쨌</span>
                 <span>{textStats.chars}자</span>
-                <span>·</span>
-                <span>예상 {textStats.readingMinutes}분 읽기</span>
+                <span>쨌</span>
+                <span>?덉긽 {textStats.readingMinutes}遺??쎄린</span>
               </div>
             </div>
           </div>
@@ -1895,50 +1917,65 @@ function BlogEditorInner() {
               }}
               className="text-[10px] text-orange-500 font-bold"
             >
-              자동생성
+              ?먮룞?앹꽦
             </button>
           </div>
 
           <div className="flex items-center justify-between gap-3 text-[11px]">
             <span className={`font-semibold ${slugStatus === 'available' ? 'text-green-600' : slugStatus === 'taken' ? 'text-red-500' : slugStatus === 'error' ? 'text-orange-500' : 'text-gray-400'}`}>
-              {slugMessage || '슬러그를 입력하면 중복 여부를 확인해요.'}
+              {slugMessage || '?щ윭洹몃? ?낅젰?섎㈃ 以묐났 ?щ?瑜??뺤씤?댁슂.'}
             </span>
             <span className={`font-medium ${slug.length > 80 ? 'text-red-500' : 'text-gray-400'}`}>
-              슬러그 {slug.length}/80
+              ?щ윭洹?{slug.length}/80
             </span>
           </div>
 
           <textarea
-            placeholder="구글 검색 결과에 표시될 글 요약을 입력하세요 (120~160자 권장)"
+            placeholder="援ш? 寃??寃곌낵???쒖떆??湲 ?붿빟???낅젰?섏꽭??(120~160??沅뚯옣)"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
             className="w-full text-sm bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-700 placeholder-gray-300"
           />
 
+          <input
+            type="text"
+            placeholder="SEO 제목 (비워두면 글 제목 사용)"
+            value={seoTitle}
+            onChange={(e) => setSeoTitle(e.target.value)}
+            className="w-full text-sm bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-700 placeholder-gray-300"
+          />
+
+          <textarea
+            placeholder="SEO 설명 (비워두면 기본 설명/본문 요약 사용)"
+            value={seoDescription}
+            onChange={(e) => setSeoDescription(e.target.value)}
+            rows={2}
+            className="w-full text-sm bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-300 text-gray-700 placeholder-gray-300"
+          />
           <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-400">
             <span className={description.length >= 120 && description.length <= 160 ? 'text-green-600 font-semibold' : ''}>
-              설명 {description.length}자 · 120~160자 권장
+              ?ㅻ챸 {description.length}??쨌 120~160??沅뚯옣
             </span>
-            <span className={title.length > 60 ? 'text-orange-500 font-semibold' : ''}>검색 제목은 보통 60자 안쪽이 좋아요.</span>
+            <span className={title.length > 60 ? 'text-orange-500 font-semibold' : ''}>寃???쒕ぉ? 蹂댄넻 60???덉そ??醫뗭븘??</span>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-sm font-bold text-gray-800">검색/대표 이미지 설정</h2>
-            <div className="text-[11px] text-gray-400">OG 이미지는 대표 썸네일과 자동으로 동일하게 저장됩니다.</div>
+            <h2 className="text-sm font-bold text-gray-800">寃??????대?吏 ?ㅼ젙</h2>
+            <div className="text-[11px] text-gray-400">OG ?대?吏??????몃꽕?쇨낵 ?먮룞?쇰줈 ?숈씪?섍쾶 ??λ맗?덈떎.</div>
           </div>
 
           <div className="grid md:grid-cols-1 gap-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-bold text-gray-500">🖼️ 대표 썸네일</label>
+              <label className="text-xs font-bold text-gray-500">대표 썸네일</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={thumbnailUrl}
                   onChange={(e) => setUnifiedThumbnail(e.target.value)}
-                  placeholder="대표 이미지 URL"
+                  placeholder="????대?吏 URL"
                   className="flex-1 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
                 />
                 <button
@@ -1952,7 +1989,7 @@ function BlogEditorInner() {
                   disabled={!thumbnailUrl || metaUploading}
                   className="px-3 py-2 text-xs font-bold bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-100 disabled:opacity-50"
                 >
-                  편집
+                  ?몄쭛
                 </button>
                 <input ref={thumbnailInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => handleMetaImageUpload('thumbnail', e)} />
               </div>
@@ -1961,7 +1998,7 @@ function BlogEditorInner() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <label className="text-xs font-bold text-gray-500"># 태그</label>
+            <label className="text-xs font-bold text-gray-500"># ?쒓렇</label>
             <div className="flex gap-2 flex-wrap">
               <input
                 type="text"
@@ -1973,19 +2010,19 @@ function BlogEditorInner() {
                     addTag(tagInput.replace(',', ''));
                   }
                 }}
-                placeholder="태그 입력 후 Enter"
+                placeholder="?쒓렇 ?낅젰 ??Enter"
                 className="flex-1 min-w-52 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
               />
               <button
                 onClick={() => addTag(tagInput)}
                 className="px-4 py-2 text-xs font-bold bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200"
               >
-                추가
+                異붽?
               </button>
             </div>
             <div className="flex flex-wrap gap-2">
               {tags.length === 0 ? (
-                <span className="text-[11px] text-gray-400">태그를 넣으면 검색/분류/관련글 구성에 좋아요.</span>
+                <span className="text-[11px] text-gray-400">?쒓렇瑜??ｌ쑝硫?寃??遺꾨쪟/愿?④? 援ъ꽦??醫뗭븘??</span>
               ) : (
                 tags.map((tag) => (
                   <button
@@ -1993,7 +2030,7 @@ function BlogEditorInner() {
                     onClick={() => removeTag(tag)}
                     className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-bold hover:bg-blue-100"
                   >
-                    #{tag} ×
+                    #{tag} 횞
                   </button>
                 ))
               )}
@@ -2015,13 +2052,13 @@ function BlogEditorInner() {
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="text-sm font-bold text-gray-800">발행 설정</h2>
+            <h2 className="text-sm font-bold text-gray-800">諛쒗뻾 ?ㅼ젙</h2>
             <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${getStatusClass(currentStatus)}`}>{getStatusLabel(currentStatus)}</span>
           </div>
 
           <div className="flex flex-wrap gap-4 items-center">
             <div className="flex items-center gap-2 flex-1 min-w-40">
-              <span className="text-xs font-bold text-gray-500">🏷️ 카테고리</span>
+              <span className="text-xs font-bold text-gray-500">?뤇截?移댄뀒怨좊━</span>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
@@ -2053,7 +2090,7 @@ function BlogEditorInner() {
               disabled={saving}
               className="px-4 py-2 rounded-full text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              지금 발행
+              吏湲?諛쒗뻾
             </button>
 
             <button
@@ -2061,7 +2098,7 @@ function BlogEditorInner() {
               disabled={saving}
               className="px-4 py-2 rounded-full text-xs font-bold bg-gray-100 text-gray-600 hover:bg-gray-200 disabled:opacity-50"
             >
-              임시저장
+              ?꾩떆???
             </button>
             <button
               onClick={() => handleSave('schedule')}
@@ -2084,7 +2121,7 @@ function BlogEditorInner() {
                   if (checked) setPublished(false);
                 }}
               />
-              ⏰ 예약발행 사용
+              예약발행 사용
             </label>
 
             <div className="flex flex-wrap gap-2 items-center">
@@ -2098,34 +2135,34 @@ function BlogEditorInner() {
                 }}
                 className="text-xs bg-white border border-gray-200 rounded-xl px-3 py-2 text-gray-700 disabled:bg-gray-100 disabled:text-gray-400"
               />
-              <button onClick={() => setQuickSchedule('plus1h')} className="px-3 py-2 text-[11px] font-bold bg-white rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100">+1시간</button>
-              <button onClick={() => setQuickSchedule('tomorrow9')} className="px-3 py-2 text-[11px] font-bold bg-white rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100">내일 09:00</button>
-              <button onClick={() => setQuickSchedule('nextMonday9')} className="px-3 py-2 text-[11px] font-bold bg-white rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100">다음 월요일 09:00</button>
+              <button onClick={() => setQuickSchedule('plus1h')} className="px-3 py-2 text-[11px] font-bold bg-white rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100">+1?쒓컙</button>
+              <button onClick={() => setQuickSchedule('tomorrow9')} className="px-3 py-2 text-[11px] font-bold bg-white rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100">?댁씪 09:00</button>
+              <button onClick={() => setQuickSchedule('nextMonday9')} className="px-3 py-2 text-[11px] font-bold bg-white rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-100">?ㅼ쓬 ?붿슂??09:00</button>
             </div>
 
             <div className="flex flex-wrap justify-between gap-2 text-[11px] text-gray-400">
               <span>
                 {scheduleEnabled && scheduledAt
                   ? isFutureDate(scheduledAt)
-                    ? '예약 시간은 정상이에요. 저장하면 예약 상태로 유지돼요.'
+                    ? '예약 시간이 정상일 때 저장하면 예약 상태로 유지됩니다.'
                     : '예약 시간은 현재보다 이후여야 해요.'
                   : '예약을 켜면 공개 상태 대신 예약 상태로 저장돼요.'}
               </span>
-              <span>{scheduleEnabled && scheduledAt ? `선택됨: ${scheduledAt.replace('T', ' ')}` : '예약 시간 미설정'}</span>
+              <span>{scheduleEnabled && scheduledAt ? `선택됨 ${scheduledAt.replace('T', ' ')}` : '예약 시간 미설정'}</span>
             </div>
           </div>
         </div>
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="text-sm font-bold text-gray-800">검색 미리보기</h2>
-            <div className="text-[11px] text-gray-400">검색 결과/공유 카드에 어떻게 보일지 미리 점검해보세요.</div>
+            <h2 className="text-sm font-bold text-gray-800">寃??誘몃━蹂닿린</h2>
+            <div className="text-[11px] text-gray-400">寃??寃곌낵/怨듭쑀 移대뱶???대뼸寃?蹂댁씪吏 誘몃━ ?먭??대낫?몄슂.</div>
           </div>
 
           <div className="border border-gray-200 rounded-2xl p-4 bg-white">
             <div className="text-[11px] text-green-700">https://example.com/blog/{slug || 'your-slug'}</div>
-            <div className="mt-1 text-lg text-blue-700 font-semibold line-clamp-2">{title || '제목이 여기에 표시됩니다.'}</div>
-            <div className="mt-1 text-sm text-gray-600 line-clamp-3">{description || '설명을 입력하면 구글/공유 미리보기에 더 잘 보일 수 있어요.'}</div>
+            <div className="mt-1 text-lg text-blue-700 font-semibold line-clamp-2">{title || '?쒕ぉ???ш린???쒖떆?⑸땲??'}</div>
+            <div className="mt-1 text-sm text-gray-600 line-clamp-3">{description || '?ㅻ챸???낅젰?섎㈃ 援ш?/怨듭쑀 誘몃━蹂닿린??????蹂댁씪 ???덉뼱??'}</div>
             {(ogImageUrl || thumbnailUrl) && (
               <img
                 src={ogImageUrl || thumbnailUrl}
@@ -2151,15 +2188,15 @@ function BlogEditorInner() {
                   </button>
                 ))}
                 <div className="w-px h-5 bg-gray-200 mx-1" />
-                <button onClick={insertLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">🔗 링크</button>
-                <button onClick={insertInternalLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">내부 링크</button>
-                <button onClick={insertTextColor} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 색상</button>
-                <button onClick={insertFontSize} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A 크기</button>
+                <button onClick={insertLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">?뵕 留곹겕</button>
+                <button onClick={insertInternalLink} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">?대? 留곹겕</button>
+                <button onClick={insertTextColor} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A ?됱긽</button>
+                <button onClick={insertFontSize} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">A ?ш린</button>
                 <button onClick={insertLongDivider} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">긴 줄</button>
                 <button onClick={insertHtmlTable} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">HTML 표</button>
-                <button onClick={insertStartBox} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">시작박스</button>
+                <button onClick={insertStartBox} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">?쒖옉諛뺤뒪</button>
                 <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">
-                  🖼️ {uploading ? '업로드 중...' : '이미지'}
+                  ?뼹截?{uploading ? '?낅줈??以?..' : '?대?吏'}
                 </button>
                 <button
                   onClick={() => setShowSplitPreview((prev) => !prev)}
@@ -2176,9 +2213,9 @@ function BlogEditorInner() {
                 <button
                   onClick={() => setAffiliateDisclosure((prev) => !prev)}
                   className={`px-3 py-1.5 text-xs font-bold rounded-lg ${affiliateDisclosure ? 'bg-emerald-100 text-emerald-700' : 'text-gray-500 hover:bg-gray-100'}`}
-                  title="쿠팡 제휴 문구를 게시글 상단 메타 정보에 노출합니다."
+                  title="荑좏뙜 ?쒗쑕 臾멸뎄瑜?寃뚯떆湲 ?곷떒 硫뷀? ?뺣낫???몄텧?⑸땲??"
                 >
-                  {affiliateDisclosure ? '제휴 ON' : '제휴'}
+                  {affiliateDisclosure ? '?쒗쑕 ON' : '?쒗쑕'}
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleContentImageUpload} />
               </div>
@@ -2188,7 +2225,7 @@ function BlogEditorInner() {
                 ref={textareaRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
-                placeholder={editorMode === 'html' ? 'HTML로 작성하세요...' : '마크다운으로 작성하세요...'}
+                placeholder={editorMode === 'html' ? 'HTML濡??묒꽦?섏꽭??..' : '留덊겕?ㅼ슫?쇰줈 ?묒꽦?섏꽭??..'}
                 className={`w-full h-[32rem] px-5 py-4 text-sm font-mono text-gray-800 resize-none focus:outline-none leading-relaxed ${showSplitPreview ? 'border-r border-gray-100' : ''}`}
                 />
                 {showSplitPreview && (
@@ -2204,10 +2241,10 @@ function BlogEditorInner() {
             <div className="grid lg:grid-cols-[220px_1fr] gap-0">
               <aside className="hidden lg:block border-r border-gray-100 bg-gray-50/70 p-4">
                 <div className="sticky top-24">
-                  <h3 className="text-xs font-bold text-gray-700 mb-3">목차</h3>
+                  <h3 className="text-xs font-bold text-gray-700 mb-3">紐⑹감</h3>
                   <div className="flex flex-col gap-1">
                     {headingList.length === 0 ? (
-                      <span className="text-[11px] text-gray-400">제목(H1~H4)을 넣으면 여기에 보여요.</span>
+                      <span className="text-[11px] text-gray-400">?쒕ぉ(H1~H4)???ｌ쑝硫??ш린??蹂댁뿬??</span>
                     ) : (
                       headingList.map((heading, index) => (
                         <a
@@ -2242,10 +2279,10 @@ function BlogEditorInner() {
         <div className="grid md:grid-cols-3 gap-4">
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-2">
             <h3 className="text-sm font-bold text-gray-800">본문 통계</h3>
-            <div className="text-sm text-gray-600">전체 글자 수: <span className="font-bold text-gray-900">{textStats.chars}</span></div>
+            <div className="text-sm text-gray-600">전체 글자수: <span className="font-bold text-gray-900">{textStats.chars}</span></div>
             <div className="text-sm text-gray-600">공백 제외: <span className="font-bold text-gray-900">{textStats.charsNoSpace}</span></div>
             <div className="text-sm text-gray-600">단어 수: <span className="font-bold text-gray-900">{textStats.words}</span></div>
-            <div className="text-sm text-gray-600">예상 읽는 시간: <span className="font-bold text-gray-900">{textStats.readingMinutes}분</span></div>
+            <div className="text-sm text-gray-600">예상 읽기 시간: <span className="font-bold text-gray-900">{textStats.readingMinutes}분</span></div>
           </div>
 
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3">
@@ -2275,16 +2312,16 @@ function BlogEditorInner() {
             </div>
 
             <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-              <div className="text-xs font-bold text-gray-700 mb-2">현재 부족한 점 진단</div>
+              <div className="text-xs font-bold text-gray-700 mb-2">?꾩옱 遺議깊븳 ??吏꾨떒</div>
               {failedSeoChecks.length === 0 ? (
-                <div className="text-xs text-green-700 font-semibold">좋아요. 현재 기준에서 보완 필요 항목이 없습니다.</div>
+                <div className="text-xs text-green-700 font-semibold">醫뗭븘?? ?꾩옱 湲곗??먯꽌 蹂댁셿 ?꾩슂 ??ぉ???놁뒿?덈떎.</div>
               ) : (
                 <div className="flex flex-col gap-2">
                   {failedSeoChecks.slice(0, 6).map((item) => (
                     <div key={`guide-${item.key}`} className="rounded-lg bg-white border border-gray-100 px-2.5 py-2">
                       <div className="text-[12px] font-semibold text-gray-800">{item.label}</div>
-                      <div className="text-[11px] text-gray-500">현재: {item.detail}</div>
-                      <div className="text-[11px] text-blue-700 mt-0.5">개선: {item.action}</div>
+                      <div className="text-[11px] text-gray-500">?꾩옱: {item.detail}</div>
+                      <div className="text-[11px] text-blue-700 mt-0.5">媛쒖꽑: {item.action}</div>
                     </div>
                   ))}
                 </div>
@@ -2327,7 +2364,7 @@ function BlogEditorInner() {
             <button onClick={() => handleSave('publish-now')} disabled={saving} className="w-full py-3 rounded-2xl font-bold text-sm bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50">지금 발행</button>
             <button onClick={() => handleSave('schedule')} disabled={saving || !scheduleEnabled || !scheduledAt} className="w-full py-3 rounded-2xl font-bold text-sm bg-amber-100 text-amber-700 hover:bg-amber-200 disabled:opacity-50">예약 발행</button>
             <button onClick={() => handleSave('default')} disabled={saving || saved} className={`w-full py-3 rounded-2xl font-bold text-sm ${saved ? 'bg-green-500 text-white' : 'bg-emerald-600 text-white hover:bg-emerald-700'} disabled:opacity-50`}>
-              {saved ? '✅ 저장 완료!' : '현재 상태 저장'}
+              {saved ? '상태 저장 완료!' : '현재 상태 저장'}
             </button>
           </div>
         </div>
@@ -2342,8 +2379,8 @@ function BlogEditorInner() {
             className="w-full max-w-2xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-bold text-gray-900">내부 링크 추가</h3>
-            <p className="mt-1 text-xs text-gray-500">카테고리를 고르고 글 제목을 눌러 링크를 삽입하세요.</p>
+            <h3 className="text-base font-bold text-gray-900">?대? 留곹겕 異붽?</h3>
+            <p className="mt-1 text-xs text-gray-500">移댄뀒怨좊━瑜?怨좊Ⅴ怨?湲 ?쒕ぉ???뚮윭 留곹겕瑜??쎌엯?섏꽭??</p>
 
             <div className="mt-4 flex flex-wrap gap-2">
               <button
@@ -2371,7 +2408,7 @@ function BlogEditorInner() {
 
             <div className="mt-4 max-h-[380px] overflow-y-auto rounded-2xl border border-gray-200">
               {internalLinkPosts.length === 0 ? (
-                <div className="px-4 py-8 text-center text-sm text-gray-400">해당 카테고리에 링크할 글이 없습니다.</div>
+                <div className="px-4 py-8 text-center text-sm text-gray-400">?대떦 移댄뀒怨좊━??留곹겕??湲???놁뒿?덈떎.</div>
               ) : (
                 <ul className="divide-y divide-gray-100">
                   {internalLinkPosts.map((post) => (
@@ -2394,7 +2431,7 @@ function BlogEditorInner() {
                 onClick={() => setInternalLinkPickerOpen(false)}
                 className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200"
               >
-                닫기
+                ?リ린
               </button>
             </div>
           </div>
@@ -2404,8 +2441,8 @@ function BlogEditorInner() {
       {thumbnailEditorOpen && thumbnailUrl && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4" onClick={() => setThumbnailEditorOpen(false)}>
           <div className="w-full max-w-3xl rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-base font-bold text-gray-900">썸네일 편집</h3>
-            <p className="mt-1 text-xs text-gray-500">16:9 카드 기준으로 썸네일 확대/위치를 조절합니다.</p>
+            <h3 className="text-base font-bold text-gray-900">?몃꽕???몄쭛</h3>
+            <p className="mt-1 text-xs text-gray-500">16:9 移대뱶 湲곗??쇰줈 ?몃꽕???뺣?/?꾩튂瑜?議곗젅?⑸땲??</p>
             <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
               <div className="relative aspect-[16/9] w-full">
                 <img
@@ -2419,19 +2456,19 @@ function BlogEditorInner() {
               </div>
             </div>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
-              <label className="text-xs text-gray-600">확대
+              <label className="text-xs text-gray-600">?뺣?
                 <input type="range" min="1" max="3" step="0.05" value={thumbnailEditorZoom} onChange={(e) => setThumbnailEditorZoom(Number(e.target.value))} className="mt-1 w-full" />
               </label>
-              <label className="text-xs text-gray-600">좌우 이동
+              <label className="text-xs text-gray-600">醫뚯슦 ?대룞
                 <input type="range" min="-100" max="100" step="1" value={thumbnailEditorOffsetX} onChange={(e) => setThumbnailEditorOffsetX(Number(e.target.value))} className="mt-1 w-full" />
               </label>
-              <label className="text-xs text-gray-600">상하 이동
+              <label className="text-xs text-gray-600">?곹븯 ?대룞
                 <input type="range" min="-100" max="100" step="1" value={thumbnailEditorOffsetY} onChange={(e) => setThumbnailEditorOffsetY(Number(e.target.value))} className="mt-1 w-full" />
               </label>
             </div>
             <div className="mt-5 flex items-center justify-end gap-2">
-              <button onClick={() => setThumbnailEditorOpen(false)} disabled={metaUploading} className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-60">취소</button>
-              <button onClick={applyThumbnailCrop} disabled={metaUploading} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-60">{metaUploading ? '적용 중...' : '적용'}</button>
+              <button onClick={() => setThumbnailEditorOpen(false)} disabled={metaUploading} className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-60">痍⑥냼</button>
+              <button onClick={applyThumbnailCrop} disabled={metaUploading} className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-60">{metaUploading ? '?곸슜 以?..' : '?곸슜'}</button>
             </div>
           </div>
         </div>
@@ -2446,26 +2483,26 @@ function BlogEditorInner() {
             className="w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-bold text-gray-900">이미지 설명 입력</h3>
-            <p className="mt-1 text-xs text-gray-500">alt 텍스트는 필수, 캡션은 선택입니다.</p>
+            <h3 className="text-base font-bold text-gray-900">?대?吏 ?ㅻ챸 ?낅젰</h3>
+            <p className="mt-1 text-xs text-gray-500">alt ?띿뒪?몃뒗 ?꾩닔, 罹≪뀡? ?좏깮?낅땲??</p>
 
             <div className="mt-4 space-y-3">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-600">alt 텍스트 (필수)</label>
+                <label className="text-xs font-bold text-gray-600">alt ?띿뒪??(?꾩닔)</label>
                 <input
                   type="text"
                   value={imageAltInput}
                   onChange={(e) => setImageAltInput(e.target.value)}
-                  placeholder="예: 무선 이어폰 제품 박스 사진"
+                  placeholder="?? 臾댁꽑 ?댁뼱???쒗뭹 諛뺤뒪 ?ъ쭊"
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-gray-600">캡션 (선택)</label>
+                <label className="text-xs font-bold text-gray-600">罹≪뀡 (?좏깮)</label>
                 <input
                   type="text"
                   value={imageCaptionInput}
                   onChange={(e) => setImageCaptionInput(e.target.value)}
-                  placeholder="예: 2026년 4월 할인 행사 대표 이미지"
+                  placeholder="?? 2026??4???좎씤 ?됱궗 ????대?吏"
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
@@ -2482,7 +2519,7 @@ function BlogEditorInner() {
                   onChange={(e) => setImageWidthInput(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
-                <div className="text-[11px] text-gray-400">20~100 사이로 입력하면 이미지 너비가 적용됩니다.</div>
+                <div className="text-[11px] text-gray-400">20~100 ?ъ씠濡??낅젰?섎㈃ ?대?吏 ?덈퉬媛 ?곸슜?⑸땲??</div>
               </div>
             </div>
 
@@ -2492,14 +2529,14 @@ function BlogEditorInner() {
                 disabled={uploading}
                 className="rounded-xl bg-gray-100 px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-200 disabled:opacity-60"
               >
-                취소
+                痍⑥냼
               </button>
               <button
                 onClick={confirmContentImageInsert}
                 disabled={uploading || !imageAltInput.trim()}
                 className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white hover:bg-blue-700 disabled:opacity-60"
               >
-                {uploading ? '업로드 중...' : '삽입'}
+                {uploading ? '?낅줈??以?..' : '?쎌엯'}
               </button>
             </div>
           </div>
@@ -2524,8 +2561,10 @@ function BlogEditorInner() {
 
 export default function BlogEditorPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center text-gray-400">로딩 중...</div>}>
+    <Suspense fallback={<div className="p-10 text-center text-gray-400">濡쒕뵫 以?..</div>}>
       <BlogEditorInner />
     </Suspense>
   );
 }
+
+

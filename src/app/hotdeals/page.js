@@ -3,6 +3,27 @@ import HotdealsClient from './HotdealsClient';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const SITE_URL = 'https://www.ssagesage.com';
+
+export const metadata = {
+  title: '실시간 핫딜 모음 | 커뮤니티 특가/최저가 탐색',
+  description:
+    '커뮤니티 실시간 핫딜을 한곳에서 모아보고 가격, 출처, 상품 정보를 빠르게 확인하세요.',
+  alternates: { canonical: `${SITE_URL}/hotdeals` },
+  openGraph: {
+    title: '실시간 핫딜 모음 | 커뮤니티 특가/최저가 탐색',
+    description:
+      '커뮤니티 실시간 핫딜을 한곳에서 모아보고 가격, 출처, 상품 정보를 빠르게 확인하세요.',
+    url: `${SITE_URL}/hotdeals`,
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: '실시간 핫딜 모음 | 커뮤니티 특가/최저가 탐색',
+    description:
+      '커뮤니티 실시간 핫딜을 한곳에서 모아보고 가격, 출처, 상품 정보를 빠르게 확인하세요.',
+  },
+};
 
 async function getInitialDeals({ sourceFilter, searchQuery }) {
   const supabase = createClient(supabaseUrl, supabaseKey);

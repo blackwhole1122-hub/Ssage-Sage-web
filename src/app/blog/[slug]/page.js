@@ -205,7 +205,7 @@ async function getPost(slug) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   const normalizedSlug = decodeURIComponent(slug).normalize('NFC');
 
-  const extendedSelect = 'id, slug, title, description, content, emoji, created_at, updated_at, scheduled_at, og_image_url, thumbnail_url, tags, affiliate_disclosure, category_id, blog_categories(name, slug)';
+  const extendedSelect = 'id, slug, title, seo_title, description, seo_description, content, emoji, created_at, updated_at, scheduled_at, og_image_url, thumbnail_url, tags, affiliate_disclosure, category_id, blog_categories(name, slug)';
   const baseSelect = 'id, slug, title, description, content, emoji, created_at, updated_at, scheduled_at, category_id, blog_categories(name, slug)';
 
   let { data, error } = await supabase
@@ -239,6 +239,8 @@ async function getPost(slug) {
   }
   return {
     ...data,
+    seo_title: data?.seo_title || null,
+    seo_description: data?.seo_description || null,
     og_image_url: data?.og_image_url || null,
     thumbnail_url: data?.thumbnail_url || null,
     tags: Array.isArray(data?.tags) ? data.tags : [],
@@ -280,16 +282,17 @@ export async function generateMetadata({ params }) {
   }
 
   const canonical = `${SITE_URL}/blog/${post.slug}`;
-  const summary = post.description || removeMarkdown(post.content || '').slice(0, 155);
+  const seoTitle = String(post.seo_title || '').trim();
+  const summary = String(post.seo_description || post.description || removeMarkdown(post.content || '').slice(0, 155)).trim();
   const image = getPreferredPostImage(post);
 
   return {
-    title: `${post.title} | ${SITE_NAME} 블로그`,
+    title: `${seoTitle || post.title} | ${SITE_NAME} 블로그`,
     description: summary,
     alternates: { canonical },
     keywords: Array.isArray(post.tags) ? post.tags : [],
     openGraph: {
-      title: post.title,
+      title: seoTitle || post.title,
       description: summary,
       url: canonical,
       siteName: SITE_NAME,
@@ -301,7 +304,7 @@ export async function generateMetadata({ params }) {
     },
     twitter: {
       card: 'summary_large_image',
-      title: post.title,
+      title: seoTitle || post.title,
       description: summary,
       images: [image],
     },
@@ -318,7 +321,7 @@ export default async function BlogPostPage({ params }) {
   const htmlContent = markdownToHtml(post.content || '');
   const categoryName = post.blog_categories?.name || null;
   const canonical = `${SITE_URL}/blog/${post.slug}`;
-  const summary = post.description || removeMarkdown(post.content || '').slice(0, 155);
+  const summary = String(post.seo_description || post.description || removeMarkdown(post.content || '').slice(0, 155)).trim();
   const image = getPreferredPostImage(post);
   const keywords = Array.isArray(post.tags) ? post.tags.filter(Boolean) : [];
   const relatedPosts = await getRelatedPosts(post);

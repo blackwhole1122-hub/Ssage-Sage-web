@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:encoding": "node scripts/lint-encoding.cjs",
+    "lint:seo-meta": "node scripts/lint-seo-meta.cjs"
   },
   "dependencies": {
     "@imgly/background-removal": "^1.7.0",
