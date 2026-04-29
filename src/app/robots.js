@@ -1,11 +1,14 @@
-// src/app/robots.js
+﻿// src/app/robots.js
 export default function robots() {
   return {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: '/api/', // 수익 링크 변환 경로 등은 제외
+      disallow: ['/api/', '/admin/'],
     },
-    sitemap: 'https://www.ssagesage.com/sitemap.xml',
-  }
+    sitemap: [
+      'https://www.ssagesage.com/sitemap.xml',
+      'https://www.ssagesage.com/feed.xml',
+    ],
+  };
 }
