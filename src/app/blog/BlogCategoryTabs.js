@@ -31,6 +31,15 @@ export default function BlogCategoryTabs({
 
   const [activeCategoryId, setActiveCategoryId] = useState(initialCategoryId);
 
+  const postCountByCategoryId = useMemo(() => {
+    const map = new Map();
+    for (const post of posts || []) {
+      const key = post?.category_id ?? null;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [posts]);
+
   useEffect(() => {
     setActiveCategoryId(initialCategoryId);
   }, [initialCategoryId]);
@@ -83,7 +92,7 @@ export default function BlogCategoryTabs({
               : 'bg-[#FAF6F0] text-[#64748B] hover:bg-[#F0EAE0] hover:text-[#1E293B]'
           }`}
         >
-          전체
+          전체 ({posts.length})
         </button>
 
         {categories.map((cat) => (
@@ -102,7 +111,7 @@ export default function BlogCategoryTabs({
             {CATEGORY_ICONS[cat.name] && (
               <span className="text-[14px] leading-none">{CATEGORY_ICONS[cat.name]}</span>
             )}
-            {cat.name}
+            {cat.name} ({postCountByCategoryId.get(cat.id) || 0})
           </button>
         ))}
       </nav>

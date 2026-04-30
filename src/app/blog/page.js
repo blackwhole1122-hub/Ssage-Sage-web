@@ -149,9 +149,6 @@ export default async function BlogListPage({ searchParams }) {
 
             <main className="px-4 py-8 md:py-12">
               <header className="mb-10">
-                <p className="text-[15px] text-[#64748B] leading-relaxed">
-                  절약과 가격비교에 도움이 되는 실전형 가이드를 모았습니다.
-                </p>
               </header>
 
               <BlogCategoryTabs

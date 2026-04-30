@@ -704,6 +704,7 @@ function buildSnapshot(form) {
     emoji: form.emoji || '📝',
     published: !!form.published,
     categoryId: String(form.categoryId || ''),
+    subcategoryId: String(form.subcategoryId || ''),
     scheduledAt: form.scheduledAt || '',
     thumbnailUrl: form.thumbnailUrl || '',
     ogImageUrl: form.ogImageUrl || '',
@@ -771,6 +772,8 @@ function BlogEditorInner() {
   const [published, setPublished] = useState(false);
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState([]);
+  const [subcategoryId, setSubcategoryId] = useState('');
+  const [subcategories, setSubcategories] = useState([]);
 
   const [scheduledAt, setScheduledAt] = useState('');
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
@@ -854,6 +857,10 @@ function BlogEditorInner() {
     });
     return items.slice(0, 300);
   }, [editId, internalLinkCategory, linkablePosts]);
+  const filteredSubcategories = useMemo(
+    () => subcategories.filter((item) => String(item.category_id || '') === String(categoryId || '')),
+    [subcategories, categoryId]
+  );
 
   const currentSnapshot = useMemo(() => {
     return buildSnapshot({
@@ -866,6 +873,7 @@ function BlogEditorInner() {
       emoji,
       published,
       categoryId,
+      subcategoryId,
       scheduledAt: scheduleEnabled ? scheduledAt : '',
       thumbnailUrl,
       ogImageUrl,
@@ -878,7 +886,7 @@ function BlogEditorInner() {
       focusKeyword,
       seoWeights,
     });
-  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
+  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -890,9 +898,13 @@ function BlogEditorInner() {
         return;
       }
 
-      const [{ data: catData }, { data: postListData }] = await Promise.all([
+      const [{ data: catData }, { data: subcatData }, { data: postListData }] = await Promise.all([
         supabase
           .from('blog_categories')
+          .select('*')
+          .order('id', { ascending: true }),
+        supabase
+          .from('blog_subcategories')
           .select('*')
           .order('id', { ascending: true }),
         supabase
@@ -903,6 +915,7 @@ function BlogEditorInner() {
       ]);
 
       if (catData) setCategories(catData);
+      if (subcatData) setSubcategories(subcatData);
       if (postListData) setLinkablePosts(postListData);
 
       let form = {
@@ -915,6 +928,7 @@ function BlogEditorInner() {
         emoji: '📝',
         published: false,
         categoryId: '',
+        subcategoryId: '',
         scheduledAt: '',
         scheduleEnabled: false,
         thumbnailUrl: '',
@@ -949,6 +963,7 @@ function BlogEditorInner() {
             emoji: post.emoji || '📝',
             published: !!post.published,
             categoryId: String(post.category_id || ''),
+            subcategoryId: String(post.subcategory_id || ''),
             scheduledAt: post.scheduled_at ? toLocalDateTimeValue(post.scheduled_at) : '',
             scheduleEnabled: !!post.scheduled_at,
             thumbnailUrl: unifiedThumb,
@@ -997,6 +1012,7 @@ function BlogEditorInner() {
       setEmoji(form.emoji);
       setPublished(form.published);
       setCategoryId(form.categoryId);
+      setSubcategoryId(form.subcategoryId || '');
       setScheduledAt(form.scheduledAt);
       setScheduleEnabled(form.scheduleEnabled);
       setThumbnailUrl(form.thumbnailUrl);
@@ -1023,6 +1039,16 @@ function BlogEditorInner() {
   }, [title, slugManual]);
 
   useEffect(() => {
+    if (!categoryId) {
+      setSubcategoryId('');
+      return;
+    }
+    if (!filteredSubcategories.some((item) => String(item.id) === String(subcategoryId))) {
+      setSubcategoryId('');
+    }
+  }, [categoryId, filteredSubcategories, subcategoryId]);
+
+  useEffect(() => {
     if (!autosaveReady || loading) return;
 
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -1040,6 +1066,7 @@ function BlogEditorInner() {
             emoji,
             published,
             categoryId,
+            subcategoryId,
             scheduledAt: scheduleEnabled ? scheduledAt : '',
             thumbnailUrl,
             ogImageUrl,
@@ -1065,7 +1092,7 @@ function BlogEditorInner() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
+  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -1202,6 +1229,7 @@ function BlogEditorInner() {
       emoji,
       published: isScheduled ? false : published,
       category_id: categoryId ? Number(categoryId) : null,
+      subcategory_id: subcategoryId ? Number(subcategoryId) : null,
       scheduled_at: effectiveScheduledAt ? toUtcISOString(effectiveScheduledAt) : null,
       updated_at: new Date().toISOString(),
     };
@@ -1232,6 +1260,7 @@ function BlogEditorInner() {
       message.includes('og_image_url') ||
       message.includes('tags') ||
       message.includes('focus_keyword') ||
+      message.includes('subcategory_id') ||
       message.includes('cta_keyword') ||
       message.includes('cta_message') ||
       message.includes('cta_exclude_keywords') ||
@@ -1589,6 +1618,7 @@ function BlogEditorInner() {
       emoji,
       published: isScheduled ? false : nextPublished,
       category_id: categoryId ? Number(categoryId) : null,
+      subcategory_id: subcategoryId ? Number(subcategoryId) : null,
       scheduled_at: effectiveScheduledAt ? toUtcISOString(effectiveScheduledAt) : null,
       updated_at: new Date().toISOString(),
     };
@@ -1616,6 +1646,7 @@ function BlogEditorInner() {
       emoji,
       published: basePayload.published,
       categoryId,
+      subcategoryId,
       scheduledAt: effectiveScheduledAt,
       thumbnailUrl,
       ogImageUrl,
@@ -2117,18 +2148,34 @@ function BlogEditorInner() {
           </div>
 
           <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex items-center gap-2 flex-1 min-w-40">
+            <div className="flex flex-1 min-w-40 flex-wrap items-center gap-2">
               <span className="text-xs font-bold text-gray-500">🏷️ 카테고리</span>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="flex-1 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
-              >
-                <option value="">미분류</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={String(c.id)}>{c.name}</option>
-                ))}
-              </select>
+              <div className="flex flex-1 min-w-56 gap-2">
+                <select
+                  value={categoryId}
+                  onChange={(e) => {
+                    setCategoryId(e.target.value);
+                    setSubcategoryId('');
+                  }}
+                  className="flex-1 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700"
+                >
+                  <option value="">큰 카테고리</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={String(c.id)}>{c.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={subcategoryId}
+                  onChange={(e) => setSubcategoryId(e.target.value)}
+                  disabled={!categoryId}
+                  className="flex-1 text-sm bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-gray-700 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  <option value="">세부카테고리</option>
+                  {filteredSubcategories.map((c) => (
+                    <option key={c.id} value={String(c.id)}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <button
