@@ -137,7 +137,7 @@ export default function BlogCategoryTabs({
             type="search"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="제목·설명·태그 검색"
+            placeholder="🔍"
             className="w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 pr-10 text-[14px] text-[#1E293B] placeholder:text-[#94A3B8] focus:border-[#0ABAB5] focus:outline-none focus:ring-2 focus:ring-[#0ABAB5]/20"
           />
           {searchQuery && (
