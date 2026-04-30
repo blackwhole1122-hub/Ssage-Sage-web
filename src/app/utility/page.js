@@ -122,7 +122,7 @@ export default function UtilityPage() {
           ))}
         </div>
       </main>
-      <footer className="bg-white border-t border-[#E2E8F0] px-4 py-8">
+      <footer className="bg-white border-t border-[#E2E8F0] px-4 py-4">
         <div className="flex items-center gap-2 mb-3">
           <span className="text-[20px]">🦀</span>
           <span className="text-[14px] font-bold text-[#1E293B]">싸게사게</span>
@@ -130,6 +130,8 @@ export default function UtilityPage() {
         <p className="text-[12px] text-[#94A3B8] leading-relaxed mb-3">커뮤니티 핫딜을 실시간으로 모아보고,<br/>핫딜온도계로 진짜 최저가를 찾아드립니다.</p>
         <div className="flex items-center gap-3 text-[12px]">
           <a href="/privacy" className="text-[#64748B] hover:text-[#1E293B] transition-colors">개인정보처리방침</a>
+          <span className="text-[#CBD5E1]">·</span>
+          <a href="/about-ssagesage" className="text-[#64748B] hover:text-[#1E293B] transition-colors">싸게사게 소개</a>
           <span className="text-[#CBD5E1]">·</span>
           <span className="text-[#94A3B8]">© 2026 싸게사게</span>
         </div>

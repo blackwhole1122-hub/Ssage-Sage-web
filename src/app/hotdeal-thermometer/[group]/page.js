@@ -187,9 +187,25 @@ export default function DetailPage() {
     .reverse();
   const visibleHistoryRows = historyRows.slice(0, visibleHistoryCount);
   const hasMoreHistory = visibleHistoryCount < historyRows.length;
+  const latestOfferPrice = Number.isFinite(lastPrice) && lastPrice > 0 ? Math.floor(lastPrice) : null;
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${product.group_name} 가격 이력`,
+    category: product.category || undefined,
+    image: `https://bpoerueomemrufjoxrej.supabase.co/storage/v1/object/public/thermometer/${product.slug}.png`,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'KRW',
+      price: latestOfferPrice ?? undefined,
+      availability: 'https://schema.org/InStock',
+      url: `https://www.ssagesage.com/hotdeal-thermometer/${product.slug}`,
+    },
+  };
 
   return (
     <div className="max-w-xl mx-auto bg-gray-50 min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <header className="p-4 flex items-center bg-white border-b sticky top-0 z-10">
         <Link href={referrer} className="mr-4">←</Link>
         <h1 className="text-sm font-black text-gray-800">{`${product.group_name} 가격 이력`}</h1>

@@ -48,13 +48,29 @@ export default async function HotdealsPage({ searchParams }) {
   const initialSource = typeof params?.source === 'string' ? params.source : '전체';
   const initialQuery = typeof params?.q === 'string' ? params.q : '';
   const initialDeals = await getInitialDeals({ sourceFilter: initialSource, searchQuery: initialQuery });
+  const itemListJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: '실시간 핫딜 목록',
+    itemListOrder: 'https://schema.org/ItemListOrderDescending',
+    numberOfItems: initialDeals.length,
+    itemListElement: initialDeals.map((deal, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: `${SITE_URL}/deal/${deal.id}`,
+      name: deal.title || '핫딜',
+    })),
+  };
 
   return (
-    <HotdealsClient
-      initialDeals={initialDeals}
-      initialCategory={initialCategory}
-      initialSource={initialSource}
-      initialQuery={initialQuery}
-    />
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListJsonLd) }} />
+      <HotdealsClient
+        initialDeals={initialDeals}
+        initialCategory={initialCategory}
+        initialSource={initialSource}
+        initialQuery={initialQuery}
+      />
+    </>
   );
 }
