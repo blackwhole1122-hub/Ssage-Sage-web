@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { buildThermometerMeta } from '@/lib/seoTemplates';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -18,10 +18,15 @@ async function getGroup(slug) {
 export async function generateMetadata({ params }) {
   const { group } = await params;
   const row = await getGroup(group);
-  const title = row?.group_name ? `${row.group_name} 가격이력` : '핫딜온도계 상세';
-  const description = row?.group_name
-    ? `${row.group_name}의 가격 이력과 현재 시세를 확인하고 구매 타이밍을 판단해보세요.`
-    : '상품별 가격 이력과 현재 시세를 확인해보세요.';
+  const keyword = row?.group_name ? String(row.group_name).trim() : '';
+
+  const title = keyword
+    ? `${keyword} 가격 이력·최저가 추이`
+    : '핫딜온도계 상세';
+
+  const description = keyword
+    ? `${keyword} 가격이 평소보다 싼지 핫딜온도계로 확인하세요. 최근 가격, 평균가, 최저가를 비교해 진짜 핫딜인지 확인할 수 있습니다.`
+    : '상품 가격이 평소보다 싼지 핫딜온도계로 확인하세요. 최근 가격, 평균가, 최저가를 비교해 진짜 핫딜인지 확인할 수 있습니다.';
 
   return buildThermometerMeta({
     title,
@@ -33,4 +38,3 @@ export async function generateMetadata({ params }) {
 export default function ThermometerGroupLayout({ children }) {
   return children;
 }
-

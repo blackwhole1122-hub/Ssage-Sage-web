@@ -180,7 +180,7 @@ export default function DetailPage() {
     <div className="max-w-xl mx-auto bg-gray-50 min-h-screen">
       <header className="p-4 flex items-center bg-white border-b sticky top-0 z-10">
         <Link href={referrer} className="mr-4">←</Link>
-        <h1 className="text-sm font-black text-gray-800">{product.group_name}</h1>
+        <h1 className="text-sm font-black text-gray-800">{`${product.group_name} 가격 이력`}</h1>
       </header>
       <main className="p-6 space-y-6">
         <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
