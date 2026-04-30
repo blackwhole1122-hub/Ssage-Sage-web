@@ -116,7 +116,7 @@ export default function CoupangDetailPage({ params: promiseParams }) {
             <a
               href={partnerRedirectUrl}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noopener noreferrer sponsored"
               className="block w-full bg-[#0ABAB5] text-white text-center py-4 rounded-xl font-bold text-[16px] mb-3"
             >
               구매하러 가기

@@ -22,6 +22,7 @@ export default function DetailPage() {
   const [activeDeal, setActiveDeal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [referrer, setReferrer] = useState('/hotdeal-thermometer');
+  const [visibleHistoryCount, setVisibleHistoryCount] = useState(15);
   const preferredUnit = extractPreferredUnitFromKeywords(product?.keywords || []);
 
   function getStrictPriceByPreferredUnit(row, fallbackProductName) {
@@ -176,6 +177,17 @@ export default function DetailPage() {
     ? `/api/coupang?url=${encodeURIComponent(coupangSearchUrl)}`
     : null;
 
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+  const historyRows = processedHistory
+    .filter((row) => {
+      const d = new Date(row.date);
+      return !Number.isNaN(d.getTime()) && d >= oneYearAgo;
+    })
+    .reverse();
+  const visibleHistoryRows = historyRows.slice(0, visibleHistoryCount);
+  const hasMoreHistory = visibleHistoryCount < historyRows.length;
+
   return (
     <div className="max-w-xl mx-auto bg-gray-50 min-h-screen">
       <header className="p-4 flex items-center bg-white border-b sticky top-0 z-10">
@@ -184,6 +196,7 @@ export default function DetailPage() {
       </header>
       <main className="p-6 space-y-6">
         <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
+          <h2 className="text-[15px] font-black text-gray-900">{`${product.group_name} 평균가격과 최저가 비교`}</h2>
           <div className="flex justify-between items-center text-gray-400">
              <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${gradeStyles[grade]}`}>
                {grade} ●
@@ -222,6 +235,7 @@ export default function DetailPage() {
           </div>
         </div>
         <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+          <h2 className="text-[15px] font-black text-gray-900 mb-2">{`${product.group_name} 가격 추이 그래프`}</h2>
           <h3 className="text-sm font-black text-gray-800 mb-6">{unitLabel} 가격 변동 흐름</h3>
           <div className="h-48 w-full">
             {processedHistory.length > 0 ? (
@@ -230,10 +244,63 @@ export default function DetailPage() {
               <div className="text-center text-gray-300 py-20 text-xs italic">데이터 분석 중...</div>
             )}
           </div>
+          <p className="mt-4 text-xs text-gray-600 leading-relaxed">
+            {`${product.group_name}의 최근 3개월 평균가는 ${avg3Month > 0 ? `${Math.floor(avg3Month).toLocaleString()}원` : '집계 중'}이며, 마지막 수집가는 ${lastPrice > 0 ? `${Math.floor(lastPrice).toLocaleString()}원` : '집계 중'}입니다.`}
+          </p>
         </div>
 
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
+          <h2 className="text-[15px] font-black text-gray-900 mb-4">수집가격 이력 (최근 1년동안 가격만 노출돼요)</h2>
+          {visibleHistoryRows.length > 0 ? (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[520px] text-[12px] border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 text-gray-600">
+                      <th className="text-left px-3 py-2 border-b border-gray-200">날짜</th>
+                      <th className="text-left px-3 py-2 border-b border-gray-200">품목</th>
+                      <th className="text-right px-3 py-2 border-b border-gray-200">금액</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleHistoryRows.map((row, idx) => {
+                      const dateText = new Date(row.date).toLocaleDateString('ko-KR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                      });
+                      return (
+                        <tr key={`${row.date}-${idx}`} className="text-gray-700">
+                          <td className="px-3 py-2 border-b border-gray-100 whitespace-nowrap">{dateText}</td>
+                          <td className="px-3 py-2 border-b border-gray-100">{row.title || product.group_name}</td>
+                          <td className="px-3 py-2 border-b border-gray-100 text-right whitespace-nowrap">
+                            {`${Math.floor(row.price).toLocaleString()}원 (${row.label || unitLabel})`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {hasMoreHistory && (
+                <div className="mt-4 text-center">
+                  <button
+                    type="button"
+                    onClick={() => setVisibleHistoryCount((prev) => prev + 15)}
+                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-[12px] font-bold text-[#0ABAB5] bg-[#E6FAF9] hover:bg-[#D6F5F3] transition-colors"
+                  >
+                    더보기
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <p className="text-xs text-gray-500">수집된 가격 이력이 아직 없습니다.</p>
+          )}
+        </section>
+
         <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-4">
-          <h3 className="text-sm font-black text-gray-800">이 가격, 어떻게 보면 될까요?</h3>
+          <h2 className="text-sm font-black text-gray-800">{`${product.group_name} 가격, 어떻게 보면 될까요?`}</h2>
           <p className="text-xs text-gray-600 leading-relaxed">
             이 페이지의 등급은 어제까지의 데이터를 기준으로 계산했어요. 기본은 최근 1년 데이터를 사용하고,
             데이터가 1년보다 짧거나 최근 1년 표본이 20건 미만이면 보유한 전체 기간 기준으로 계산해요.
@@ -258,6 +325,7 @@ export default function DetailPage() {
           {coupangRedirectUrl ? (
             <a
               href={coupangRedirectUrl}
+              rel="sponsored"
               className="block w-full text-center bg-[#0ABAB5] hover:bg-[#09A7A2] text-white font-extrabold text-[16px] py-4 rounded-2xl transition-colors"
             >
               쿠팡에서 최저가 구매하기
@@ -271,6 +339,9 @@ export default function DetailPage() {
               쿠팡 링크 준비중
             </button>
           )}
+          <p className="mt-2 text-[11px] text-gray-500 text-center">
+            이 배너는 제휴 활동의 일환으로 일정액의 수수료를 제공받습니다
+          </p>
         </div>
       </main>
     </div>

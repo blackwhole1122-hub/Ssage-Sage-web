@@ -344,7 +344,7 @@ export default function DealDetailPage({ params: promiseParams }) {
           <a
             href={coupangPartnerLink}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener noreferrer sponsored"
             className="block w-full bg-[#0ABAB5] text-white text-center py-4 rounded-xl font-bold mb-3 shadow-sm"
           >
             쿠팡 최저가 구매하러가기
