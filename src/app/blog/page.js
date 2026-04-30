@@ -32,16 +32,20 @@ export const revalidate = 60;
 async function getData() {
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  const [postsResInitial, catsRes] = await Promise.all([
+  const [postsResInitial, catsRes, subcatsRes] = await Promise.all([
     supabase
       .from('blog_posts')
-      .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, thumbnail_url, og_image_url, tags')
+      .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
       .eq('published', true)
       .order('created_at', { ascending: false }),
     supabase
       .from('blog_categories')
       .select('*')
       .order('sort_order', { ascending: true }),
+    supabase
+      .from('blog_subcategories')
+      .select('*')
+      .order('id', { ascending: true }),
   ]);
 
   let postsRes = postsResInitial;
@@ -56,7 +60,7 @@ async function getData() {
     if (missingThumbCols) {
       const fallbackRes = await supabase
         .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, tags')
+        .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, tags')
         .eq('published', true)
         .order('created_at', { ascending: false });
 
@@ -80,7 +84,7 @@ async function getData() {
     return new Date(post.scheduled_at) <= now;
   });
 
-  return { posts, categories: catsRes.data || [] };
+  return { posts, categories: catsRes.data || [], subcategories: subcatsRes.data || [] };
 }
 
 function buildItemListJsonLd(posts = []) {
@@ -97,10 +101,12 @@ function buildItemListJsonLd(posts = []) {
 }
 
 export default async function BlogListPage({ searchParams }) {
-  const { posts, categories } = await getData();
+  const { posts, categories, subcategories } = await getData();
   const params = await searchParams;
   const initialCategoryName =
     typeof params?.category === 'string' ? params.category : null;
+  const initialSubcategorySlug =
+    typeof params?.subcategory === 'string' ? params.subcategory : null;
 
   const listJsonLd = buildItemListJsonLd(posts);
 
@@ -155,7 +161,9 @@ export default async function BlogListPage({ searchParams }) {
               <BlogCategoryTabs
                 posts={posts}
                 categories={categories}
+                subcategories={subcategories}
                 initialCategoryName={initialCategoryName}
+                initialSubcategorySlug={initialSubcategorySlug}
               />
             </main>
           </div>

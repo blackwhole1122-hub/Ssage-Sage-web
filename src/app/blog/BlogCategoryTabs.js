@@ -10,7 +10,9 @@ const CATEGORY_COLORS = {};
 export default function BlogCategoryTabs({
   posts,
   categories,
+  subcategories = [],
   initialCategoryName,
+  initialSubcategorySlug,
 }) {
   const router = useRouter();
   const postDateFormatter = useMemo(
@@ -30,7 +32,13 @@ export default function BlogCategoryTabs({
   }, [categories, initialCategoryName]);
 
   const [activeCategoryId, setActiveCategoryId] = useState(initialCategoryId);
+  const [activeSubcategoryId, setActiveSubcategoryId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const initialSubcategoryId = useMemo(() => {
+    if (!initialSubcategorySlug) return null;
+    return subcategories.find((s) => s.slug === initialSubcategorySlug)?.id ?? null;
+  }, [subcategories, initialSubcategorySlug]);
 
   const postCountByCategoryId = useMemo(() => {
     const map = new Map();
@@ -43,16 +51,21 @@ export default function BlogCategoryTabs({
 
   useEffect(() => {
     setActiveCategoryId(initialCategoryId);
-  }, [initialCategoryId]);
+    setActiveSubcategoryId(initialSubcategoryId);
+  }, [initialCategoryId, initialSubcategoryId]);
 
   const updateURL = useCallback(
-    (categoryId) => {
+    (categoryId, subcategoryId = null) => {
       let url;
 
       if (categoryId) {
         const category = categories.find((c) => c.id === categoryId);
         if (category) {
-          url = `/blog?category=${encodeURIComponent(category.name)}`;
+          const subcategory =
+            subcategoryId ? subcategories.find((s) => s.id === subcategoryId) : null;
+          url = `/blog?category=${encodeURIComponent(category.name)}${
+            subcategory ? `&subcategory=${encodeURIComponent(subcategory.slug)}` : ''
+          }`;
           router.push(url, { scroll: false });
         }
       } else {
@@ -64,7 +77,7 @@ export default function BlogCategoryTabs({
         sessionStorage.setItem('blogListUrl', url);
       }
     },
-    [router, categories]
+    [router, categories, subcategories]
   );
 
   useEffect(() => {
@@ -78,9 +91,13 @@ export default function BlogCategoryTabs({
     ? posts.filter((post) => post.category_id === activeCategoryId)
     : posts;
 
+  const subcategoryFilteredPosts = activeSubcategoryId
+    ? categoryFilteredPosts.filter((post) => post.subcategory_id === activeSubcategoryId)
+    : categoryFilteredPosts;
+
   const normalizedQuery = searchQuery.trim().toLowerCase();
   const filteredPosts = normalizedQuery
-    ? categoryFilteredPosts.filter((post) => {
+    ? subcategoryFilteredPosts.filter((post) => {
         const title = String(post?.title || '').toLowerCase();
         const description = String(post?.description || '').toLowerCase();
         const tags = Array.isArray(post?.tags) ? post.tags.join(' ').toLowerCase() : '';
@@ -90,7 +107,12 @@ export default function BlogCategoryTabs({
           tags.includes(normalizedQuery)
         );
       })
-    : categoryFilteredPosts;
+    : subcategoryFilteredPosts;
+
+  const visibleSubcategories = useMemo(() => {
+    if (!activeCategoryId) return [];
+    return subcategories.filter((item) => item.category_id === activeCategoryId);
+  }, [subcategories, activeCategoryId]);
 
   return (
     <div>
@@ -99,7 +121,8 @@ export default function BlogCategoryTabs({
         <button
           onClick={() => {
             setActiveCategoryId(null);
-            updateURL(null);
+            setActiveSubcategoryId(null);
+            updateURL(null, null);
           }}
           className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${
             activeCategoryId === null
@@ -115,7 +138,8 @@ export default function BlogCategoryTabs({
             key={cat.id}
             onClick={() => {
               setActiveCategoryId(cat.id);
-              updateURL(cat.id);
+              setActiveSubcategoryId(null);
+              updateURL(cat.id, null);
             }}
             className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeCategoryId === cat.id
@@ -130,6 +154,40 @@ export default function BlogCategoryTabs({
           </button>
         ))}
       </nav>
+
+      {activeCategoryId && visibleSubcategories.length > 0 && (
+        <nav className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={() => {
+              setActiveSubcategoryId(null);
+              updateURL(activeCategoryId, null);
+            }}
+            className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap ${
+              activeSubcategoryId === null
+                ? 'bg-[#0ABAB5] text-white'
+                : 'bg-[#F8FAFC] text-[#64748B] hover:bg-[#EFF6FF] hover:text-[#1E293B]'
+            }`}
+          >
+            세부 전체
+          </button>
+          {visibleSubcategories.map((subcat) => (
+            <button
+              key={subcat.id}
+              onClick={() => {
+                setActiveSubcategoryId(subcat.id);
+                updateURL(activeCategoryId, subcat.id);
+              }}
+              className={`px-3 py-1.5 rounded-full text-[12px] font-semibold transition-all whitespace-nowrap ${
+                activeSubcategoryId === subcat.id
+                  ? 'bg-[#0ABAB5] text-white'
+                  : 'bg-[#F8FAFC] text-[#64748B] hover:bg-[#EFF6FF] hover:text-[#1E293B]'
+              }`}
+            >
+              {subcat.name}
+            </button>
+          ))}
+        </nav>
+      )}
 
       <div className="mb-6">
         <div className="relative">
