@@ -250,9 +250,42 @@ export default function DealDetailPage({ params: promiseParams }) {
 
   const coupangSearchUrl = `https://www.coupang.com/np/search?q=${encodeURIComponent(deal.title || '')}`;
   const coupangPartnerLink = `/api/coupang?url=${encodeURIComponent(coupangSearchUrl)}`;
+  const parsedDealPrice = Number(String(deal.price || '').replace(/[^\d]/g, ''));
+  const canonicalUrl = typeof window !== 'undefined' ? window.location.href : `https://www.ssagesage.com/deal/${deal.id}`;
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: deal.title || '핫딜 상품',
+    image: deal.image ? [deal.image] : undefined,
+    category: deal.category || undefined,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'KRW',
+      price: Number.isFinite(parsedDealPrice) && parsedDealPrice > 0 ? parsedDealPrice : undefined,
+      availability: 'https://schema.org/InStock',
+      seller: deal.shop ? { '@type': 'Organization', name: deal.shop } : undefined,
+      url: deal.shop_url || coupangPartnerLink || canonicalUrl,
+    },
+  };
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: deal.title || '핫딜 상세',
+    datePublished: deal.crawled_at || undefined,
+    dateModified: deal.crawled_at || undefined,
+    mainEntityOfPage: canonicalUrl,
+    image: deal.image ? [deal.image] : undefined,
+    publisher: {
+      '@type': 'Organization',
+      name: '싸게사게',
+      logo: { '@type': 'ImageObject', url: 'https://www.ssagesage.com/logo-ssagesage.png' },
+    },
+  };
+  const detailJsonLd = [productJsonLd, articleJsonLd];
 
   return (
     <div className="max-w-4xl mx-auto bg-[#FAF6F0] min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(detailJsonLd) }} />
       <header className="bg-white border-b border-[#E2E8F0] px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
         <button onClick={handleBack} className="text-[#64748B] hover:text-[#0ABAB5]">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

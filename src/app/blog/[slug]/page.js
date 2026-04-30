@@ -138,6 +138,37 @@ function getPreferredPostImage(post) {
   return post?.og_image_url || post?.thumbnail_url || '/og-image.png';
 }
 
+function parseFaqItemsFromContent(raw = '') {
+  const text = String(raw || '');
+  const match = text.match(/:::faq\s*\n([\s\S]*?)\n:::/m);
+  if (!match) return [];
+
+  const lines = match[1].split('\n').map((line) => line.trim()).filter(Boolean);
+  const items = [];
+  let question = '';
+
+  for (const line of lines) {
+    if (/^Q\s*:/i.test(line)) {
+      question = line.replace(/^Q\s*:\s*/i, '').trim();
+      continue;
+    }
+    if (/^A\s*:/i.test(line)) {
+      const answer = line.replace(/^A\s*:\s*/i, '').trim();
+      if (question && answer) items.push({ question, answer });
+      question = '';
+    }
+  }
+
+  return items;
+}
+
+function removeFaqBlockFromContent(raw = '') {
+  return String(raw || '')
+    .replace(/\n{0,2}:::faq\s*\n[\s\S]*?\n:::\s*/m, '\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 function markdownToHtml(md = '') {
   let html = md || '';
   html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, lang, code) => {
@@ -158,6 +189,29 @@ function markdownToHtml(md = '') {
       .filter(Boolean);
     if (!items.length) return '';
     return `<section class="md-startbox"><h3 class="md-startbox-title">${safeTitle}</h3><ul class="md-startbox-list">${items.map((item) => `<li class="md-startbox-item"><span class="md-startbox-check">☑</span><span>${escapeHtml(item)}</span></li>`).join('')}</ul></section>`;
+  });
+  html = html.replace(/:::faq\s*\n([\s\S]*?)\n:::/g, (_m, body = '') => {
+    const lines = String(body || '').split('\n').map((line) => line.trim()).filter(Boolean);
+    const faqItems = [];
+    let question = '';
+    for (const line of lines) {
+      if (/^Q\s*:/i.test(line)) {
+        question = line.replace(/^Q\s*:\s*/i, '').trim();
+        continue;
+      }
+      if (/^A\s*:/i.test(line)) {
+        const answer = line.replace(/^A\s*:\s*/i, '').trim();
+        if (question && answer) faqItems.push({ question, answer });
+        question = '';
+      }
+    }
+    if (faqItems.length === 0) return '';
+    return `<section class="md-faq"><h3 class="md-faq-title">자주 묻는 질문</h3><div class="md-faq-list">${faqItems
+      .map(
+        (item) =>
+          `<article class="md-faq-item"><h4 class="md-faq-q">Q. ${escapeHtml(item.question)}</h4><p class="md-faq-a">A. ${escapeHtml(item.answer)}</p></article>`
+      )
+      .join('')}</div></section>`;
   });
   html = html.replace(/^\[([^\]]+)\]\(([^)]+)\)\s*$/gm, (_m, text, href) => {
     if (!isCoupangHref(href)) return _m;
@@ -366,6 +420,7 @@ export default async function BlogPostPage({ params }) {
   if (!post) notFound();
 
   const subcategoryNeighbors = await getNeighborSubcategoryPosts(post);
+  const faqItems = parseFaqItemsFromContent(post.content || '');
   const enrichedContent = injectSubcategoryLinksBlock(post.content || '', subcategoryNeighbors);
   const htmlContent = markdownToHtml(enrichedContent);
   const categoryName = post.blog_categories?.name || null;
@@ -409,6 +464,20 @@ export default async function BlogPostPage({ params }) {
       ],
     },
   ];
+  if (faqItems.length >= 2) {
+    jsonLd.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqItems.slice(0, 8).map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer,
+        },
+      })),
+    });
+  }
 
   return (
     <>
@@ -507,6 +576,12 @@ export default async function BlogPostPage({ params }) {
           [&_.md-startbox-list]:space-y-1.5
           [&_.md-startbox-item]:flex [&_.md-startbox-item]:items-start [&_.md-startbox-item]:gap-2 [&_.md-startbox-item]:text-[14px] [&_.md-startbox-item]:text-emerald-900
           [&_.md-startbox-check]:mt-0.5 [&_.md-startbox-check]:text-emerald-600
+          [&_.md-faq]:my-6 [&_.md-faq]:rounded-2xl [&_.md-faq]:border [&_.md-faq]:border-violet-200 [&_.md-faq]:bg-violet-50/60 [&_.md-faq]:px-4 [&_.md-faq]:py-4
+          [&_.md-faq-title]:mb-2 [&_.md-faq-title]:text-[15px] [&_.md-faq-title]:font-bold [&_.md-faq-title]:text-violet-900
+          [&_.md-faq-list]:space-y-2
+          [&_.md-faq-item]:rounded-xl [&_.md-faq-item]:bg-white [&_.md-faq-item]:border [&_.md-faq-item]:border-violet-100 [&_.md-faq-item]:px-3 [&_.md-faq-item]:py-2
+          [&_.md-faq-q]:text-[14px] [&_.md-faq-q]:font-semibold [&_.md-faq-q]:text-violet-900 [&_.md-faq-q]:mb-1
+          [&_.md-faq-a]:text-[13px] [&_.md-faq-a]:text-[#334155] [&_.md-faq-a]:leading-relaxed
           [&_.md-subcatbox]:my-6 [&_.md-subcatbox]:rounded-2xl [&_.md-subcatbox]:border [&_.md-subcatbox]:border-sky-200 [&_.md-subcatbox]:bg-sky-50/70 [&_.md-subcatbox]:px-4 [&_.md-subcatbox]:py-4
           [&_.md-subcatbox-title]:mb-2 [&_.md-subcatbox-title]:text-[15px] [&_.md-subcatbox-title]:font-bold [&_.md-subcatbox-title]:text-sky-900
           [&_.md-subcatbox-list]:space-y-1

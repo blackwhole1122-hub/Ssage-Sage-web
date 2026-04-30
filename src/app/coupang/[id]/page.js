@@ -62,9 +62,27 @@ export default function CoupangDetailPage({ params: promiseParams }) {
   const partnerRedirectUrl = coupangTargetUrl
     ? `/api/coupang?url=${encodeURIComponent(coupangTargetUrl)}`
     : '';
+  const canonicalUrl = typeof window !== 'undefined' ? window.location.href : `https://www.ssagesage.com/coupang/${product.product_id}`;
+  const productJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name || '쿠팡 핫딜 상품',
+    image: product.image_url ? [product.image_url] : undefined,
+    category: product.category || undefined,
+    brand: product.brand ? { '@type': 'Brand', name: product.brand } : undefined,
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'KRW',
+      price: Number.isFinite(Number(product.discount_price)) ? Number(product.discount_price) : undefined,
+      availability: 'https://schema.org/InStock',
+      url: coupangTargetUrl || canonicalUrl,
+      seller: { '@type': 'Organization', name: '쿠팡' },
+    },
+  };
 
   return (
     <div className="max-w-4xl mx-auto bg-[#FAF6F0] min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <header className="bg-white border-b border-[#E2E8F0] px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
         <Link href={referrer} className="text-[#64748B] hover:text-[#0ABAB5]">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

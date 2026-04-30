@@ -238,6 +238,63 @@ function hasCoupangLink(text = '') {
   return /(https?:\/\/)?([a-z0-9-]+\.)?(coupang\.com|link\.coupang\.com)\//i.test(String(text || ''));
 }
 
+function parseFaqItemsFromContent(raw = '') {
+  const text = String(raw || '');
+  const match = text.match(/:::faq\s*\n([\s\S]*?)\n:::/m);
+  if (!match) return [];
+
+  const lines = match[1].split('\n').map((line) => line.trim()).filter(Boolean);
+  const items = [];
+  let currentQuestion = '';
+
+  for (const line of lines) {
+    if (/^Q\s*:/i.test(line)) {
+      currentQuestion = line.replace(/^Q\s*:\s*/i, '').trim();
+      continue;
+    }
+    if (/^A\s*:/i.test(line)) {
+      const answer = line.replace(/^A\s*:\s*/i, '').trim();
+      if (currentQuestion && answer) {
+        items.push({ question: currentQuestion, answer });
+      }
+      currentQuestion = '';
+    }
+  }
+
+  return items;
+}
+
+function removeFaqBlockFromContent(raw = '') {
+  return String(raw || '')
+    .replace(/\n{0,2}:::faq\s*\n[\s\S]*?\n:::\s*/m, '\n\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function buildFaqBlock(items = []) {
+  const normalized = (items || [])
+    .map((item) => ({
+      question: String(item?.question || '').trim(),
+      answer: String(item?.answer || '').trim(),
+    }))
+    .filter((item) => item.question && item.answer);
+
+  if (normalized.length === 0) return '';
+
+  const body = normalized
+    .map((item) => `Q: ${item.question}\nA: ${item.answer}`)
+    .join('\n\n');
+
+  return `:::faq\n${body}\n:::`;
+}
+
+function mergeContentWithFaq(content = '', faqItems = []) {
+  const base = removeFaqBlockFromContent(content);
+  const faqBlock = buildFaqBlock(faqItems);
+  if (!faqBlock) return base;
+  return `${base}\n\n${faqBlock}`.trim();
+}
+
 function getLinkStats(links = []) {
   const internal = links.filter((item) => item.isInternal).length;
   const external = links.filter((item) => item.isExternal).length;
@@ -712,6 +769,7 @@ function buildSnapshot(form) {
     ctaKeyword: form.ctaKeyword || '',
     ctaMessage: form.ctaMessage || '',
     ctaExcludeKeywords: form.ctaExcludeKeywords || '',
+    faqItems: Array.isArray(form.faqItems) ? form.faqItems : [],
     affiliateDisclosure: !!form.affiliateDisclosure,
     editorMode: form.editorMode || 'markdown',
     focusKeyword: form.focusKeyword || '',
@@ -785,6 +843,7 @@ function BlogEditorInner() {
   const [ctaKeyword, setCtaKeyword] = useState('');
   const [ctaMessage, setCtaMessage] = useState('');
   const [ctaExcludeKeywords, setCtaExcludeKeywords] = useState('');
+  const [faqItems, setFaqItems] = useState([]);
   const [affiliateDisclosure, setAffiliateDisclosure] = useState(false);
   const [focusKeyword, setFocusKeyword] = useState('');
   const [seoWeights, setSeoWeights] = useState(() => createDefaultSeoWeights());
@@ -881,12 +940,13 @@ function BlogEditorInner() {
       ctaKeyword,
       ctaMessage,
       ctaExcludeKeywords,
+      faqItems,
       affiliateDisclosure,
       editorMode,
       focusKeyword,
       seoWeights,
     });
-  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
+  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, faqItems, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -937,6 +997,7 @@ function BlogEditorInner() {
         ctaKeyword: '',
         ctaMessage: '',
         ctaExcludeKeywords: '',
+        faqItems: [],
         affiliateDisclosure: false,
         editorMode: 'markdown',
         focusKeyword: '',
@@ -972,6 +1033,7 @@ function BlogEditorInner() {
             ctaKeyword: String(post.cta_keyword || ''),
             ctaMessage: String(post.cta_message || ''),
             ctaExcludeKeywords: String(post.cta_exclude_keywords || ''),
+            faqItems: [],
             affiliateDisclosure: !!post.affiliate_disclosure,
             focusKeyword: String(post.focus_keyword || parseStoredTags(post.tags)[0] || ''),
             seoWeights: createDefaultSeoWeights(),
@@ -1008,7 +1070,13 @@ function BlogEditorInner() {
       setSlug(form.slug);
       setDescription(form.description);
       setSeoDescription(form.seoDescription || '');
-      setContent(form.content);
+      const parsedFaqItems = Array.isArray(form.faqItems) && form.faqItems.length > 0
+        ? form.faqItems
+        : parseFaqItemsFromContent(form.content || '');
+      const plainContent = removeFaqBlockFromContent(form.content || '');
+      form = { ...form, content: plainContent, faqItems: parsedFaqItems };
+
+      setContent(plainContent);
       setEmoji(form.emoji);
       setPublished(form.published);
       setCategoryId(form.categoryId);
@@ -1021,6 +1089,7 @@ function BlogEditorInner() {
       setCtaKeyword(form.ctaKeyword || '');
       setCtaMessage(form.ctaMessage || '');
       setCtaExcludeKeywords(form.ctaExcludeKeywords || '');
+      setFaqItems(parsedFaqItems);
       setAffiliateDisclosure(!!form.affiliateDisclosure);
       setEditorMode(form.editorMode || 'markdown');
       setFocusKeyword(form.focusKeyword || '');
@@ -1074,6 +1143,7 @@ function BlogEditorInner() {
             ctaKeyword,
             ctaMessage,
             ctaExcludeKeywords,
+            faqItems,
             affiliateDisclosure,
             editorMode,
             focusKeyword,
@@ -1092,7 +1162,7 @@ function BlogEditorInner() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
+  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, faqItems, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -1193,6 +1263,20 @@ function BlogEditorInner() {
     setTags((prev) => prev.filter((item) => item !== tag));
   }
 
+  function addFaqItem() {
+    setFaqItems((prev) => [...prev, { question: '', answer: '' }]);
+  }
+
+  function updateFaqItem(index, field, value) {
+    setFaqItems((prev) =>
+      prev.map((item, i) => (i === index ? { ...item, [field]: value } : item))
+    );
+  }
+
+  function removeFaqItem(index) {
+    setFaqItems((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function updateSeoWeight(key, value) {
     const parsed = Number(value);
     setSeoWeights((prev) => ({
@@ -1225,7 +1309,7 @@ function BlogEditorInner() {
       slug: slug.trim(),
       description: description.trim(),
       seo_description: seoDescription.trim() || null,
-      content,
+      content: mergeContentWithFaq(content, faqItems),
       emoji,
       published: isScheduled ? false : published,
       category_id: categoryId ? Number(categoryId) : null,
@@ -1616,7 +1700,7 @@ function BlogEditorInner() {
       slug: slug.trim(),
       description: description.trim(),
       seo_description: seoDescription.trim() || null,
-      content,
+      content: mergeContentWithFaq(content, faqItems),
       emoji,
       published: isScheduled ? false : nextPublished,
       category_id: categoryId ? Number(categoryId) : null,
@@ -1656,6 +1740,7 @@ function BlogEditorInner() {
       ctaKeyword,
       ctaMessage,
       ctaExcludeKeywords,
+      faqItems,
       affiliateDisclosure: affiliateDisclosure || autoAffiliateDisclosure,
       editorMode,
       focusKeyword,
@@ -2154,6 +2239,55 @@ function BlogEditorInner() {
               <div className="mt-2 text-[11px] text-gray-500">
                 저장 후, 핫딜 제목/본문에 키워드가 매칭되고 제외 키워드가 없으면 상세 하단에 자동 노출됩니다.
               </div>
+            </div>
+
+            <div className="mt-2 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs font-bold text-gray-600">FAQ 블록 (질문/답변)</div>
+                <button
+                  type="button"
+                  onClick={addFaqItem}
+                  className="px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 text-[11px] font-bold hover:bg-blue-200"
+                >
+                  + FAQ 추가
+                </button>
+              </div>
+              {faqItems.length === 0 ? (
+                <div className="text-[11px] text-gray-500">
+                  FAQ를 추가하면 발행 시 자동으로 FAQPage 구조화데이터가 생성됩니다.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {faqItems.map((item, index) => (
+                    <div key={`faq-${index}`} className="rounded-xl border border-gray-200 bg-white p-2.5">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="text-[11px] font-bold text-gray-500">FAQ {index + 1}</div>
+                        <button
+                          type="button"
+                          onClick={() => removeFaqItem(index)}
+                          className="text-[11px] font-bold text-red-500 hover:text-red-700"
+                        >
+                          삭제
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        value={item.question}
+                        onChange={(e) => updateFaqItem(index, 'question', e.target.value)}
+                        placeholder="질문 (Q)"
+                        className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 mb-2"
+                      />
+                      <textarea
+                        value={item.answer}
+                        onChange={(e) => updateFaqItem(index, 'answer', e.target.value)}
+                        placeholder="답변 (A)"
+                        rows={2}
+                        className="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 resize-none"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

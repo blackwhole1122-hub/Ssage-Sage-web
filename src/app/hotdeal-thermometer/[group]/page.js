@@ -1,181 +1,75 @@
-'use client'
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement,
-  Title, Tooltip, Filler, Legend,
-} from 'chart.js';
-import { Line } from 'react-chartjs-2';
-import { getUnitPrice, calculateGrade } from '@/lib/priceUtils';
+import { notFound } from 'next/navigation';
+import { createClient } from '@supabase/supabase-js';
+import { calculateGrade } from '@/lib/priceUtils';
 import { extractPreferredUnitFromKeywords, matchesGroupByTitle } from '@/lib/keywordMatcher';
+import ThermometerDetailClient from './ThermometerDetailClient';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend);
+const SITE_URL = 'https://www.ssagesage.com';
 
-export default function DetailPage() {
-  const params = useParams();
-  const slug = params?.group;
- 
-  const [product, setProduct] = useState(null);
-  const [priceHistory, setPriceHistory] = useState([]);
-  const [activeDeal, setActiveDeal] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [referrer, setReferrer] = useState('/hotdeal-thermometer');
-  const [visibleHistoryCount, setVisibleHistoryCount] = useState(15);
-  const preferredUnit = extractPreferredUnitFromKeywords(product?.keywords || []);
-
-  function getStrictPriceByPreferredUnit(row, fallbackProductName) {
-    if (preferredUnit === '100g') {
-      const v = Number(row?.price_per_100g);
-      return Number.isFinite(v) && v > 0 ? { price: v, label: '100g당' } : { price: 0, label: '100g당' };
-    }
-    if (preferredUnit === '100ml') {
-      const v = Number(row?.price_per_100ml);
-      return Number.isFinite(v) && v > 0 ? { price: v, label: '100ml당' } : { price: 0, label: '100ml당' };
-    }
-    if (preferredUnit === 'unit') {
-      const v = Number(row?.price_per_unit);
-      const unitCount = Number(row?.count);
-      if (Number.isFinite(v) && v > 0) {
-        return { price: v, label: unitCount > 1 ? '1개당' : '개당' };
-      }
-      return { price: 0, label: unitCount > 1 ? '1개당' : '개당' };
-    }
-
-    // 단위 고정이 없을 때만 기존 자동 계산 사용
-    return getUnitPrice(row, fallbackProductName);
+function getStrictPriceByPreferredUnit(row, preferredUnit) {
+  if (preferredUnit === '100g') {
+    const v = Number(row?.price_per_100g);
+    return Number.isFinite(v) && v > 0 ? { price: v, label: '100g당' } : { price: 0, label: '100g당' };
   }
-  
-  // ✨ 세션 스토리지에서 referrer 읽기
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedUrl = sessionStorage.getItem('thermometerListUrl');
-      if (savedUrl) {
-        setReferrer(savedUrl);
-      }
-    }
-  }, []);
+  if (preferredUnit === '100ml') {
+    const v = Number(row?.price_per_100ml);
+    return Number.isFinite(v) && v > 0 ? { price: v, label: '100ml당' } : { price: 0, label: '100ml당' };
+  }
+  if (preferredUnit === 'unit') {
+    const v = Number(row?.price_per_unit);
+    const unitCount = Number(row?.count);
+    const label = unitCount > 1 ? '1개당' : '개당';
+    return Number.isFinite(v) && v > 0 ? { price: v, label } : { price: 0, label };
+  }
+  return { price: 0, label: '단위가' };
+}
 
-  useEffect(() => {
-    async function fetchDetailData() {
-      if (!slug) return;
-      setLoading(true);
-      
-      // 1. 필요한 데이터 한꺼번에 가져오기 (benchmarks 추가)
-      const [
-        { data: productData },
-        { data: benchmarkData },
-        { data: priceData }
-      ] = await Promise.all([
-        supabase.from('keyword_groups').select('*').eq('slug', slug).maybeSingle(),
-        supabase.from('price_benchmarks').select('*').eq('slug', slug).maybeSingle(),
-        supabase.from('price_history').select('*').eq('group_slug', slug).order('crawled_at', { ascending: true })
-      ]);
+function gradeStyles(grade) {
+  return {
+    역대급: 'bg-purple-600 text-white',
+    대박: 'bg-red-500 text-white',
+    중박: 'bg-orange-400 text-white',
+    평범: 'bg-gray-400 text-white',
+    구매금지: 'bg-black text-white',
+  }[grade] || 'bg-gray-400 text-white';
+}
 
-      if (productData) {
-        setProduct({ ...productData, benchmark: benchmarkData }); // 🌟 벤치마크 데이터를 상품 정보에 포함
+async function getDetailData(groupSlug) {
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
-        const filteredHistory = (priceData || []).filter((row) =>
-          matchesGroupByTitle(row.title || row.group_name || '', productData.keywords || [])
-        );
-        setPriceHistory(filteredHistory);
+  const [{ data: product }, { data: benchmark }, { data: priceHistory }] = await Promise.all([
+    supabase.from('keyword_groups').select('*').eq('slug', groupSlug).maybeSingle(),
+    supabase.from('price_benchmarks').select('*').eq('slug', groupSlug).maybeSingle(),
+    supabase
+      .from('price_history')
+      .select('*')
+      .eq('group_slug', groupSlug)
+      .order('crawled_at', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true, nullsFirst: false }),
+  ]);
 
-        // 최저가 핫딜 찾기 (기존 로직 유지)
-        const { data: allDeals } = await supabase
-          .from('hotdeals')
-          .select('*')
-          .eq('group_name', productData.group_name.trim());
+  if (!product) return null;
 
-        let bestDeal = null;
-        let bestUnitPrice = Infinity;
-        allDeals?.forEach(deal => {
-          const fixedUnit = extractPreferredUnitFromKeywords(productData.keywords || []);
-          const { price } = getUnitPrice(deal, deal.group_name, fixedUnit);
-          if (price > 0 && price < bestUnitPrice) {
-            bestUnitPrice = price;
-            bestDeal = deal;
-          }
-        });
-        setActiveDeal(bestDeal);
-
-      }
-      setLoading(false);
-    }
-    fetchDetailData();
-  }, [slug]);
-
-  if (loading) return <div className="p-20 text-center font-bold text-gray-400">시세 분석 중... 📈</div>;
-  if (!product) return <div className="p-20 text-center">상품 정보가 없습니다.</div>;
-
-  // --- 🎯 통합 데이터 계산 로직 (메인과 100% 동기화) ---
-
-// --- 🎯 통합 데이터 계산 로직 (price_benchmarks 적용) ---
-  const processedHistory = priceHistory
-    .map(h => {
-      const unitInfo = getStrictPriceByPreferredUnit(h, product.group_name);
-      return { ...h, price: unitInfo.price, label: unitInfo.label, date: h.crawled_at || h.created_at };
+  const preferredUnit = extractPreferredUnitFromKeywords(product.keywords || []);
+  const processedHistory = (priceHistory || [])
+    .filter((row) => matchesGroupByTitle(row.title || row.group_name || '', product.keywords || []))
+    .map((row) => {
+      const unit = getStrictPriceByPreferredUnit(row, preferredUnit);
+      return {
+        ...row,
+        price: unit.price,
+        label: unit.label,
+        date: row.crawled_at || row.created_at,
+      };
     })
-    .filter((h) => Number.isFinite(h.price) && h.price > 0);
+    .filter((row) => Number.isFinite(row.price) && row.price > 0);
 
-  const benchmark = product.benchmark; 
-  const latestHistory = processedHistory.length > 0 ? processedHistory[processedHistory.length - 1] : {};
-  
-  // 🎯 핵심: 실시간 핫딜 가격은 무시하고 DB의 "평균가(ref_avg)"를 현재 시세의 기준으로 잡음
-  const currentUnitPrice = benchmark?.ref_avg || 0;
-  const unitLabel = latestHistory.label || "단위당";
-  
-  // 등급 계산을 위한 기준 수치 (DB 데이터 사용)
-  const referenceLow = benchmark ? benchmark.ref_low : 0;
-  const avg3Month = benchmark ? benchmark.ref_avg : 0;
-  const lastPrice = latestHistory.price || 0;
-  const hasComparison = avg3Month > 0 && lastPrice > 0;
-  const diffPercent = hasComparison
-    ? Math.abs(((lastPrice - avg3Month) / avg3Month) * 100)
-    : 0;
-  const comparisonType = !hasComparison
-    ? 'none'
-    : lastPrice < avg3Month
-      ? 'lower'
-      : lastPrice > avg3Month
-        ? 'higher'
-        : 'same';
-
-  let grade = "분석중";
-  if (currentUnitPrice > 0 && referenceLow > 0) {
-    // 평균가가 최저가 대비 어떤 상태인지 5단계 등급 계산
-    grade = calculateGrade(currentUnitPrice, referenceLow, avg3Month);
-  }
-
-  // 👇 이 부분이 삭제되어서 에러가 났던 거야! 다시 넣어줘.
-  const gradeStyles = {
-    "역대급": "bg-purple-600 text-white",
-    "대박": "bg-red-500 text-white",
-    "중박": "bg-orange-400 text-white",
-    "평범": "bg-gray-400 text-white",
-    "구매금지": "bg-black text-white", // 🖤 구매금지도 추가
-    "분석중": "bg-gray-400 text-white",
-  };
-  
-  const lineData = {
-    labels: processedHistory.map(h => new Date(h.date).toLocaleDateString('ko-KR', {month: 'numeric', day: 'numeric'})),
-    datasets: [{
-      data: processedHistory.map(h => h.price),
-      fill: true,
-      borderColor: '#f97316',
-      backgroundColor: 'rgba(249, 115, 22, 0.05)',
-      tension: 0.3,
-      pointRadius: 1,
-    }]
-  }; // 👈 여기서 객체가 안전하게 닫혀야 함!
-
-  const coupangSearchUrl = product?.group_name
-    ? `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(product.group_name)}`
-    : null;
-
-  const coupangRedirectUrl = coupangSearchUrl
-    ? `/api/coupang?url=${encodeURIComponent(coupangSearchUrl)}`
-    : null;
+  const latest = processedHistory.length > 0 ? processedHistory[processedHistory.length - 1] : null;
+  const refLow = Number(benchmark?.ref_low) || 0;
+  const refAvg = Number(benchmark?.ref_avg) || 0;
+  const lastPrice = Number(latest?.price) || 0;
+  const grade = refLow > 0 && refAvg > 0 ? calculateGrade(refAvg, refLow, refAvg) : null;
 
   const oneYearAgo = new Date();
   oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
@@ -185,9 +79,70 @@ export default function DetailPage() {
       return !Number.isNaN(d.getTime()) && d >= oneYearAgo;
     })
     .reverse();
-  const visibleHistoryRows = historyRows.slice(0, visibleHistoryCount);
-  const hasMoreHistory = visibleHistoryCount < historyRows.length;
-  const latestOfferPrice = Number.isFinite(lastPrice) && lastPrice > 0 ? Math.floor(lastPrice) : null;
+
+  return {
+    product,
+    benchmark,
+    processedHistory,
+    historyRows,
+    refLow,
+    refAvg,
+    lastPrice,
+    unitLabel: latest?.label || '단위가',
+    grade,
+  };
+}
+
+export async function generateMetadata({ params }) {
+  const { group } = await params;
+  const data = await getDetailData(group);
+  if (!data) {
+    return {
+      title: '상품을 찾을 수 없습니다',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const keyword = data.product.group_name;
+  const title = `${keyword} 가격 이력·최저가 추이 | 핫딜온도계`;
+  const description = `[${keyword}] 가격이 평소보다 싼지 핫딜온도계로 확인하세요. 최근 가격, 평균가, 최저가를 비교해 진짜 핫딜인지 볼 수 있습니다.`;
+  const canonical = `${SITE_URL}/hotdeal-thermometer/${data.product.slug}`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      type: 'website',
+      locale: 'ko_KR',
+      siteName: '싸게사게',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  };
+}
+
+export const revalidate = 300;
+
+export default async function ThermometerDetailPage({ params }) {
+  const { group } = await params;
+  const data = await getDetailData(group);
+  if (!data) notFound();
+
+  const { product, refLow, refAvg, lastPrice, unitLabel, grade, processedHistory, historyRows } = data;
+  const canonical = `${SITE_URL}/hotdeal-thermometer/${product.slug}`;
+  const coupangSearchUrl = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(product.group_name)}`;
+  const coupangRedirectUrl = `/api/coupang?url=${encodeURIComponent(coupangSearchUrl)}`;
+  const hasComparison = refAvg > 0 && lastPrice > 0;
+  const diffPercent = hasComparison ? Math.abs(((lastPrice - refAvg) / refAvg) * 100) : 0;
+  const comparisonType = !hasComparison ? 'none' : lastPrice < refAvg ? 'lower' : lastPrice > refAvg ? 'higher' : 'same';
+
   const productJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -197,9 +152,9 @@ export default function DetailPage() {
     offers: {
       '@type': 'Offer',
       priceCurrency: 'KRW',
-      price: latestOfferPrice ?? undefined,
+      price: lastPrice > 0 ? Math.floor(lastPrice) : undefined,
       availability: 'https://schema.org/InStock',
-      url: `https://www.ssagesage.com/hotdeal-thermometer/${product.slug}`,
+      url: canonical,
     },
   };
 
@@ -207,159 +162,70 @@ export default function DetailPage() {
     <div className="max-w-xl mx-auto bg-gray-50 min-h-screen">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <header className="p-4 flex items-center bg-white border-b sticky top-0 z-10">
-        <Link href={referrer} className="mr-4">←</Link>
+        <Link href="/hotdeal-thermometer" className="mr-4">
+          ←
+        </Link>
         <h1 className="text-sm font-black text-gray-800">{`${product.group_name} 가격 이력`}</h1>
       </header>
+
       <main className="p-6 space-y-6">
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
-          <h2 className="text-[15px] font-black text-gray-900">{`${product.group_name} 평균가격과 최저가 비교`}</h2>
+        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-6">
+          <h2 className="text-[15px] font-black text-gray-900">{`${product.group_name} 평균가격`}</h2>
           <div className="flex justify-between items-center text-gray-400">
-             <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${gradeStyles[grade]}`}>
-               {grade} ●
-             </span>
-             <span className="text-[9px] font-bold uppercase tracking-widest">{unitLabel} 가격 기준</span>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-gray-400 font-bold">어제까지의 {unitLabel} 평균 시세</p>
-            {/* 총 가격 부분은 평균가 기준이므로 굳이 노출하지 않거나 텍스트 보정 */}
-            <p className="text-[10px] text-gray-300 font-bold">최근 데이터 기반 분석 결과</p>
+            <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg ${gradeStyles(grade)}`}>{grade || '분석중'}</span>
+            <span className="text-[9px] font-bold uppercase tracking-widest">{`${unitLabel} 기준`}</span>
           </div>
           <div className="grid grid-cols-3 gap-2 pt-6 border-t border-gray-50">
-            {/* 1. 왼쪽: 1년 최저가 */}
             <div className="space-y-1">
               <p className="text-[9px] text-gray-400 font-bold">1년 최저가</p>
-              <p className="text-base font-black text-purple-600 truncate">
-                {referenceLow > 0 ? `${Math.floor(referenceLow).toLocaleString()}원` : "-"}
-              </p>
+              <p className="text-base font-black text-purple-600 truncate">{refLow > 0 ? `${Math.floor(refLow).toLocaleString()}원` : '-'}</p>
             </div>
-
-            {/* 2. 중간: 평균가 (3개월) */}
             <div className="space-y-1 text-center border-x border-gray-50">
               <p className="text-[9px] text-gray-400 font-bold">평균가(3개월)</p>
-              <p className="text-base font-black text-gray-800 truncate">
-                {avg3Month > 0 ? `${Math.floor(avg3Month).toLocaleString()}원` : "-"}
-              </p>
+              <p className="text-base font-black text-gray-800 truncate">{refAvg > 0 ? `${Math.floor(refAvg).toLocaleString()}원` : '-'}</p>
             </div>
-
-            {/* 3. 오른쪽: 마지막 가격 (가장 최근 기록) */}
             <div className="space-y-1 text-right">
               <p className="text-[9px] text-gray-400 font-bold">마지막 가격</p>
-              <p className="text-base font-black text-blue-600 truncate">
-                {lastPrice > 0 ? `${Math.floor(lastPrice).toLocaleString()}원` : "-"}
-              </p>
+              <p className="text-base font-black text-blue-600 truncate">{lastPrice > 0 ? `${Math.floor(lastPrice).toLocaleString()}원` : '-'}</p>
             </div>
           </div>
-        </div>
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
-          <h2 className="text-[15px] font-black text-gray-900 mb-2">{`${product.group_name} 가격 추이 그래프`}</h2>
-          <h3 className="text-sm font-black text-gray-800 mb-6">{unitLabel} 가격 변동 흐름</h3>
-          <div className="h-48 w-full">
-            {processedHistory.length > 0 ? (
-              <Line data={lineData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
-            ) : (
-              <div className="text-center text-gray-300 py-20 text-xs italic">데이터 분석 중...</div>
-            )}
-          </div>
-          <p className="mt-4 text-xs text-gray-600 leading-relaxed">
-            {`${product.group_name}의 최근 3개월 평균가는 ${avg3Month > 0 ? `${Math.floor(avg3Month).toLocaleString()}원` : '집계 중'}이며, 마지막 수집가는 ${lastPrice > 0 ? `${Math.floor(lastPrice).toLocaleString()}원` : '집계 중'}입니다.`}
-          </p>
-        </div>
-
-        <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100">
-          <h2 className="text-[15px] font-black text-gray-900 mb-4">수집가격 이력 (최근 1년동안 가격만 노출돼요)</h2>
-          {visibleHistoryRows.length > 0 ? (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[520px] text-[12px] border-collapse">
-                  <thead>
-                    <tr className="bg-gray-50 text-gray-600">
-                      <th className="text-left px-3 py-2 border-b border-gray-200">날짜</th>
-                      <th className="text-left px-3 py-2 border-b border-gray-200">품목</th>
-                      <th className="text-right px-3 py-2 border-b border-gray-200">금액</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visibleHistoryRows.map((row, idx) => {
-                      const dateText = new Date(row.date).toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: '2-digit',
-                        day: '2-digit',
-                      });
-                      return (
-                        <tr key={`${row.date}-${idx}`} className="text-gray-700">
-                          <td className="px-3 py-2 border-b border-gray-100 whitespace-nowrap">{dateText}</td>
-                          <td className="px-3 py-2 border-b border-gray-100">{row.title || product.group_name}</td>
-                          <td className="px-3 py-2 border-b border-gray-100 text-right whitespace-nowrap">
-                            {`${Math.floor(row.price).toLocaleString()}원 (${row.label || unitLabel})`}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-              {hasMoreHistory && (
-                <div className="mt-4 text-center">
-                  <button
-                    type="button"
-                    onClick={() => setVisibleHistoryCount((prev) => prev + 15)}
-                    className="inline-flex items-center justify-center px-4 py-2 rounded-xl text-[12px] font-bold text-[#0ABAB5] bg-[#E6FAF9] hover:bg-[#D6F5F3] transition-colors"
-                  >
-                    더보기
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="text-xs text-gray-500">수집된 가격 이력이 아직 없습니다.</p>
-          )}
         </section>
+
+        <ThermometerDetailClient
+          productName={product.group_name}
+          unitLabel={unitLabel}
+          processedHistory={processedHistory}
+          historyRows={historyRows}
+        />
 
         <section className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 space-y-4">
-          <h2 className="text-sm font-black text-gray-800">{`${product.group_name} 가격, 어떻게 보면 될까요?`}</h2>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            이 페이지의 등급은 어제까지의 데이터를 기준으로 계산했어요. 기본은 최근 1년 데이터를 사용하고,
-            데이터가 1년보다 짧거나 최근 1년 표본이 20건 미만이면 보유한 전체 기간 기준으로 계산해요.
-          </p>
+          <h2 className="text-sm font-black text-gray-800">{`${product.group_name}가격, 어떻게 보면 될까요?`}</h2>
           <p className="text-xs text-gray-700 leading-relaxed">
-            {comparisonType === 'none' && '비교 데이터가 충분하지 않아 현재는 참고용으로 확인해 주세요.'}
+            {comparisonType === 'none' && '비교할 데이터가 아직 충분하지 않아 참고용으로 확인해 주세요.'}
             {comparisonType === 'lower' && (
-              <>최근 가격은 기준 평균가보다 약 <strong>{diffPercent.toFixed(1)}%</strong> 낮은 수준이에요.</>
+              <>마지막 가격이 평균가보다 약 <strong>{diffPercent.toFixed(1)}%</strong> 낮은 상태예요.</>
             )}
             {comparisonType === 'higher' && (
-              <>최근 가격은 기준 평균가보다 약 <strong>{diffPercent.toFixed(1)}%</strong> 높은 수준이에요.</>
+              <>마지막 가격이 평균가보다 약 <strong>{diffPercent.toFixed(1)}%</strong> 높은 상태예요.</>
             )}
-            {comparisonType === 'same' && '최근 가격은 기준 평균가와 거의 같은 수준이에요.'}
+            {comparisonType === 'same' && '마지막 가격이 평균가와 거의 비슷한 상태예요.'}
           </p>
-          <ul className="list-disc pl-5 text-xs text-gray-600 leading-relaxed space-y-1">
-            <li>같은 상품이라도 용량/개수 구성이 다르면 체감 가격이 달라질 수 있어요.</li>
-            <li>쿠폰, 카드할인, 배송비 적용 여부에 따라 최종 결제금액이 달라질 수 있어요.</li>
-            <li>핫딜 특성상 가격은 빠르게 바뀔 수 있으니, 결제 전 한 번 더 확인해 주세요.</li>
-          </ul>
         </section>
+
         <div>
-          {coupangRedirectUrl ? (
-            <a
-              href={coupangRedirectUrl}
-              rel="sponsored"
-              className="block w-full text-center bg-[#0ABAB5] hover:bg-[#09A7A2] text-white font-extrabold text-[16px] py-4 rounded-2xl transition-colors"
-            >
-              쿠팡에서 최저가 구매하기
-            </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="block w-full text-center bg-gray-200 text-gray-500 font-bold text-[16px] py-4 rounded-2xl cursor-not-allowed"
-            >
-              쿠팡 링크 준비중
-            </button>
-          )}
+          <a
+            href={coupangRedirectUrl}
+            rel="sponsored"
+            className="block w-full text-center bg-[#0ABAB5] hover:bg-[#09A7A2] text-white font-extrabold text-[16px] py-4 rounded-2xl transition-colors"
+          >
+            쿠팡에서 최저가 구매하기
+          </a>
           <p className="mt-2 text-[11px] text-gray-500 text-center">
-            이 배너는 제휴 활동의 일환으로 일정액의 수수료를 제공받습니다
+            이 포스팅은 제휴마케팅 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.
           </p>
         </div>
       </main>
     </div>
   );
 }
+
