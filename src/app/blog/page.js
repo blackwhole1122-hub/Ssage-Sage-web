@@ -35,7 +35,7 @@ async function getData() {
   const [postsResInitial, catsRes] = await Promise.all([
     supabase
       .from('blog_posts')
-      .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, thumbnail_url, og_image_url')
+      .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, thumbnail_url, og_image_url, tags')
       .eq('published', true)
       .order('created_at', { ascending: false }),
     supabase
@@ -56,7 +56,7 @@ async function getData() {
     if (missingThumbCols) {
       const fallbackRes = await supabase
         .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at')
+        .select('id, slug, title, description, emoji, created_at, category_id, scheduled_at, tags')
         .eq('published', true)
         .order('created_at', { ascending: false });
 
@@ -67,6 +67,7 @@ async function getData() {
             ...item,
             thumbnail_url: null,
             og_image_url: null,
+            tags: Array.isArray(item?.tags) ? item.tags : [],
           })),
         };
       }

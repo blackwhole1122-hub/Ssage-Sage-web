@@ -30,6 +30,7 @@ export default function BlogCategoryTabs({
   }, [categories, initialCategoryName]);
 
   const [activeCategoryId, setActiveCategoryId] = useState(initialCategoryId);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const postCountByCategoryId = useMemo(() => {
     const map = new Map();
@@ -73,9 +74,23 @@ export default function BlogCategoryTabs({
     }
   }, [activeCategoryId]);
 
-  const filteredPosts = activeCategoryId
+  const categoryFilteredPosts = activeCategoryId
     ? posts.filter((post) => post.category_id === activeCategoryId)
     : posts;
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredPosts = normalizedQuery
+    ? categoryFilteredPosts.filter((post) => {
+        const title = String(post?.title || '').toLowerCase();
+        const description = String(post?.description || '').toLowerCase();
+        const tags = Array.isArray(post?.tags) ? post.tags.join(' ').toLowerCase() : '';
+        return (
+          title.includes(normalizedQuery) ||
+          description.includes(normalizedQuery) ||
+          tags.includes(normalizedQuery)
+        );
+      })
+    : categoryFilteredPosts;
 
   return (
     <div>
@@ -115,6 +130,28 @@ export default function BlogCategoryTabs({
           </button>
         ))}
       </nav>
+
+      <div className="mb-6">
+        <div className="relative">
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="제목·설명·태그 검색"
+            className="w-full rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 pr-10 text-[14px] text-[#1E293B] placeholder:text-[#94A3B8] focus:border-[#0ABAB5] focus:outline-none focus:ring-2 focus:ring-[#0ABAB5]/20"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-[12px] font-semibold text-[#64748B] hover:bg-[#F8FAFC]"
+              aria-label="검색어 지우기"
+            >
+              지우기
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* 블로그 글 목록 그리드 */}
       {filteredPosts.length > 0 ? (
@@ -178,10 +215,10 @@ export default function BlogCategoryTabs({
         <div className="py-20 text-center bg-white rounded-2xl border border-[#E2E8F0]">
           <span className="text-4xl block mb-3">🗂️</span>
           <p className="text-[15px] font-semibold text-[#1E293B]">
-            이 카테고리에는 아직 글이 없어요.
+            {normalizedQuery ? '검색 결과가 없어요.' : '이 카테고리에는 아직 글이 없어요.'}
           </p>
           <p className="text-[13px] text-[#64748B] mt-1">
-            곧 유용한 정보가 올라올 예정이에요.
+            {normalizedQuery ? '다른 키워드로 검색해보세요.' : '곧 유용한 정보가 올라올 예정이에요.'}
           </p>
         </div>
       )}
