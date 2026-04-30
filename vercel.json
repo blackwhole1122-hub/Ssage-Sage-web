@@ -1,9 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/notify-telegram",
-      "schedule": "*/5 * * * *"
-    }
-  ]
-}
-
