@@ -114,6 +114,15 @@ export default function BlogCategoryTabs({
     return subcategories.filter((item) => item.category_id === activeCategoryId);
   }, [subcategories, activeCategoryId]);
 
+  const postCountBySubcategoryId = useMemo(() => {
+    const map = new Map();
+    for (const post of categoryFilteredPosts || []) {
+      const key = post?.subcategory_id ?? null;
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    return map;
+  }, [categoryFilteredPosts]);
+
   return (
     <div>
       {/* 카테고리 탭 */}
@@ -168,7 +177,7 @@ export default function BlogCategoryTabs({
                 : 'bg-[#F8FAFC] text-[#64748B] hover:bg-[#EFF6FF] hover:text-[#1E293B]'
             }`}
           >
-            세부 전체
+            세부 전체 ({categoryFilteredPosts.length})
           </button>
           {visibleSubcategories.map((subcat) => (
             <button
@@ -183,7 +192,7 @@ export default function BlogCategoryTabs({
                   : 'bg-[#F8FAFC] text-[#64748B] hover:bg-[#EFF6FF] hover:text-[#1E293B]'
               }`}
             >
-              {subcat.name}
+              {subcat.name} ({postCountBySubcategoryId.get(subcat.id) || 0})
             </button>
           ))}
         </nav>
