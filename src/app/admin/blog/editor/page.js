@@ -1612,8 +1612,10 @@ function BlogEditorInner() {
 
     const basePayload = {
       title: title.trim(),
+      seo_title: seoTitle.trim() || null,
       slug: slug.trim(),
       description: description.trim(),
+      seo_description: seoDescription.trim() || null,
       content,
       emoji,
       published: isScheduled ? false : nextPublished,
@@ -1750,6 +1752,21 @@ function BlogEditorInner() {
     const block = '\n:::startbox[이 글을 읽으면 알 수 있어요]\n- 핵심 포인트 1\n- 핵심 포인트 2\n- 핵심 포인트 3\n:::\n';
     const next = content.slice(0, start) + block + content.slice(end);
     setContent(next);
+  }
+
+  function insertSubcategoryLinksBox(e) {
+    e.preventDefault();
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const block = '\n:::subcategory-links[같은 세부카테고리 글 더보기]\n:::\n';
+    const next = content.slice(0, start) + block + content.slice(end);
+    setContent(next);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + block.length, start + block.length);
+    }, 0);
   }
 
   async function handleDelete() {
@@ -2302,6 +2319,7 @@ function BlogEditorInner() {
                 <button onClick={insertLongDivider} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">긴 줄</button>
                 <button onClick={insertHtmlTable} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">HTML 표</button>
                 <button onClick={insertStartBox} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">시작박스</button>
+                <button onClick={insertSubcategoryLinksBox} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">세부카테고리</button>
                 <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-lg">
                   🖼️ {uploading ? '업로드 중...' : '이미지'}
                 </button>

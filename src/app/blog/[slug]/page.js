@@ -205,8 +205,8 @@ async function getPost(slug) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   const normalizedSlug = decodeURIComponent(slug).normalize('NFC');
 
-  const extendedSelect = 'id, slug, title, seo_title, description, seo_description, content, emoji, created_at, updated_at, scheduled_at, og_image_url, thumbnail_url, tags, affiliate_disclosure, category_id, blog_categories(name, slug)';
-  const baseSelect = 'id, slug, title, description, content, emoji, created_at, updated_at, scheduled_at, category_id, blog_categories(name, slug)';
+  const extendedSelect = 'id, slug, title, seo_title, description, seo_description, content, emoji, created_at, updated_at, scheduled_at, og_image_url, thumbnail_url, tags, affiliate_disclosure, category_id, subcategory_id, blog_categories(name, slug)';
+  const baseSelect = 'id, slug, title, description, content, emoji, created_at, updated_at, scheduled_at, category_id, subcategory_id, blog_categories(name, slug)';
 
   let { data, error } = await supabase
     .from('blog_posts')
@@ -270,6 +270,53 @@ async function getRelatedPosts(post) {
   return data || [];
 }
 
+function buildSubcategoryLinksHtml(title = '같은 세부카테고리 글 더보기', items = []) {
+  const safeTitle = escapeHtml(String(title || '').trim() || '같은 세부카테고리 글 더보기');
+  if (!items.length) return '';
+  return `<section class="md-subcatbox"><h3 class="md-subcatbox-title">${safeTitle}</h3><ul class="md-subcatbox-list">${items
+    .map((item) => `<li class="md-subcatbox-item"><a class="md-link" href="/blog/${escapeHtml(item.slug)}">${escapeHtml(item.title)}</a></li>`)
+    .join('')}</ul></section>`;
+}
+
+async function getNeighborSubcategoryPosts(post) {
+  if (!post?.id || !post?.subcategory_id || !post?.created_at) return [];
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  const nowIso = new Date().toISOString();
+
+  const olderQuery = supabase
+    .from('blog_posts')
+    .select('id, slug, title, created_at')
+    .eq('published', true)
+    .eq('subcategory_id', post.subcategory_id)
+    .neq('id', post.id)
+    .or(`scheduled_at.is.null,scheduled_at.lte.${nowIso}`)
+    .lt('created_at', post.created_at)
+    .order('created_at', { ascending: false })
+    .limit(2);
+
+  const newerQuery = supabase
+    .from('blog_posts')
+    .select('id, slug, title, created_at')
+    .eq('published', true)
+    .eq('subcategory_id', post.subcategory_id)
+    .neq('id', post.id)
+    .or(`scheduled_at.is.null,scheduled_at.lte.${nowIso}`)
+    .gt('created_at', post.created_at)
+    .order('created_at', { ascending: true })
+    .limit(2);
+
+  const [{ data: older }, { data: newer }] = await Promise.all([olderQuery, newerQuery]);
+  const olderPosts = Array.isArray(older) ? [...older].reverse() : [];
+  const newerPosts = Array.isArray(newer) ? newer : [];
+  return [...olderPosts, ...newerPosts];
+}
+
+function injectSubcategoryLinksBlock(content = '', items = []) {
+  return String(content || '').replace(/:::subcategory-links(?:\[(.*?)\])?\n:::/g, (_m, title = '') => {
+    return buildSubcategoryLinksHtml(title, items);
+  });
+}
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const post = await getPost(slug);
@@ -318,7 +365,9 @@ export default async function BlogPostPage({ params }) {
   const post = await getPost(slug);
   if (!post) notFound();
 
-  const htmlContent = markdownToHtml(post.content || '');
+  const subcategoryNeighbors = await getNeighborSubcategoryPosts(post);
+  const enrichedContent = injectSubcategoryLinksBlock(post.content || '', subcategoryNeighbors);
+  const htmlContent = markdownToHtml(enrichedContent);
   const categoryName = post.blog_categories?.name || null;
   const canonical = `${SITE_URL}/blog/${post.slug}`;
   const summary = String(post.seo_description || post.description || removeMarkdown(post.content || '').slice(0, 155)).trim();
@@ -458,6 +507,10 @@ export default async function BlogPostPage({ params }) {
           [&_.md-startbox-list]:space-y-1.5
           [&_.md-startbox-item]:flex [&_.md-startbox-item]:items-start [&_.md-startbox-item]:gap-2 [&_.md-startbox-item]:text-[14px] [&_.md-startbox-item]:text-emerald-900
           [&_.md-startbox-check]:mt-0.5 [&_.md-startbox-check]:text-emerald-600
+          [&_.md-subcatbox]:my-6 [&_.md-subcatbox]:rounded-2xl [&_.md-subcatbox]:border [&_.md-subcatbox]:border-sky-200 [&_.md-subcatbox]:bg-sky-50/70 [&_.md-subcatbox]:px-4 [&_.md-subcatbox]:py-4
+          [&_.md-subcatbox-title]:mb-2 [&_.md-subcatbox-title]:text-[15px] [&_.md-subcatbox-title]:font-bold [&_.md-subcatbox-title]:text-sky-900
+          [&_.md-subcatbox-list]:space-y-1
+          [&_.md-subcatbox-item]:text-[14px] [&_.md-subcatbox-item]:text-[#1E293B]
           [&_.md-figure]:my-6 [&_.md-figure]:flex [&_.md-figure]:flex-col [&_.md-figure]:items-center
           [&_.md-img]:rounded-xl [&_.md-img]:my-2 [&_.md-img]:max-w-full
           [&_.md-figcaption]:mt-2 [&_.md-figcaption]:text-center [&_.md-figcaption]:text-[13px] [&_.md-figcaption]:text-[#64748B]
