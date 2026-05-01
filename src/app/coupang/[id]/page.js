@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -140,7 +140,7 @@ export default function CoupangDetailPage({ params: promiseParams }) {
               구매하러 가기
             </a>
             <p className="text-[12px] text-black text-center font-medium opacity-80">
-              이 배너는 제휴 활동의 일환으로 일정액의 수수료를 제공받습니다
+              이 배너는 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 제공 받습니다
             </p>
           </div>
         )}
@@ -148,3 +148,4 @@ export default function CoupangDetailPage({ params: promiseParams }) {
     </div>
   );
 }
+

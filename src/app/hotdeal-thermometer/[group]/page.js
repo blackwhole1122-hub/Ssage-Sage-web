@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 import { calculateGrade } from '@/lib/priceUtils';
@@ -221,11 +221,12 @@ export default async function ThermometerDetailPage({ params }) {
             쿠팡에서 최저가 구매하기
           </a>
           <p className="mt-2 text-[11px] text-gray-500 text-center">
-            이 포스팅은 제휴마케팅 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.
+            이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공 받습니다.
           </p>
         </div>
       </main>
     </div>
   );
 }
+
 

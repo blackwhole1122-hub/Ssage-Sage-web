@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
@@ -185,7 +185,7 @@ export default function DealDetailPage({ params: promiseParams }) {
     // Remove common crawler artifacts that appear as broken trailing markup.
     .replace(/\r\n/g, '\n')
     // Remove affiliate disclosure lines captured from crawlers.
-    .replace(/^.*(?:제휴마케팅 활동의 일환|일정액의 수수료를 제공받을 수 있습니다|쿠팡파트너스의 일환).*(?:\n|$)/gim, '')
+    .replace(/^.*(?:제휴마케팅 활동의 일환|일정액의 수수료를 제공 받습니다|쿠팡파트너스의 일환).*(?:\n|$)/gim, '')
     .replace(/^.*(?:\[\s*이\s*포스팅은|<\s*\[\s*이\s*포스팅은).*(?:\n|$)/gim, '')
     .replace(/^\s*["'`]*\s*<\s*$/gm, '')
     .replace(/^\s*["'`]+\s*$/gm, '')
@@ -373,23 +373,12 @@ export default function DealDetailPage({ params: promiseParams }) {
           </div>
         )}
 
-        {deal.title && (
-          <a
-            href={coupangPartnerLink}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className="block w-full bg-[#0ABAB5] text-white text-center py-4 rounded-xl font-bold mb-3 shadow-sm"
-          >
-            쿠팡 최저가 구매하러가기
-          </a>
-        )}
-
         {deal.shop_url && (
           <a
             href={deal.shop_url}
             target="_blank"
             rel="noopener noreferrer"
-            className="block w-full bg-white text-[#1E293B] border border-[#E2E8F0] text-center py-4 rounded-xl font-bold mb-3 hover:bg-[#FAF6F0] transition-colors"
+            className="block w-full bg-[#0ABAB5] text-white text-center py-4 rounded-xl font-bold mb-3 shadow-sm hover:bg-[#089490] transition-colors"
           >
             구매하러 가기
           </a>
@@ -407,7 +396,24 @@ export default function DealDetailPage({ params: promiseParams }) {
             </a>
           </>
         )}
+
+        {deal.title && (
+          <>
+            <a
+              href={coupangPartnerLink}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className="block w-full bg-white text-[#1E293B] border border-[#E2E8F0] text-center py-4 rounded-xl font-bold mb-2 hover:bg-[#FAF6F0] transition-colors"
+            >
+              쿠팡 최저가 구매하러가기
+            </a>
+            <p className="text-[12px] text-black text-center font-medium opacity-80 mb-3">
+              이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공 받습니다.
+            </p>
+          </>
+        )}
       </main>
     </div>
   );
 }
+

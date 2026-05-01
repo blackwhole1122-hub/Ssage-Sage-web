@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { acquireCoupangSlot, loadCoupangPartners, releaseCoupangSlot } from '@/lib/coupangPartners';
@@ -99,8 +99,9 @@ export default function CoupangInlineHorizontalBanner({ fillWidth = false, prese
         />
       </div>
       <p className="mt-2 text-center text-[11px] text-[#64748B]">
-        이 배너는 제휴 활동의 일환으로 일정액의 수수료를 제공받습니다
+        이 배너는 쿠팡 파트너스 활동의 일환으로 일정액의 수수료를 제공 받습니다
       </p>
     </div>
   );
 }
+

@@ -9,7 +9,7 @@ import BlogShareButton from './BlogShareButton';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
-const AFFILIATE_DISCLOSURE_TEXT = '\uC774 \uAC8C\uC2DC\uBB3C\uC740 \uCFE0\uD321 \uD30C\uD2B8\uB108\uC2A4 \uD65C\uB3D9\uC758 \uC77C\uD658\uC73C\uB85C, \uC774\uC5D0 \uB530\uB978 \uC77C\uC815\uC561\uC758\uC218\uC218\uB8CC\uB97C \uBC1B\uC2B5\uB2C8\uB2E4.';
+const AFFILIATE_DISCLOSURE_TEXT = '이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공 받습니다.';
 const SITE_NAME = '싸게사게';
 
 function escapeHtml(str = '') {
