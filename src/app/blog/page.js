@@ -51,14 +51,29 @@ async function getData() {
   let postsRes = postsResInitial;
   if (postsResInitial?.error) {
     const msg = `${postsResInitial.error.message || ''} ${postsResInitial.error.details || ''}`.toLowerCase();
+    const missingPublishedAt = msg.includes('published_at');
     const missingThumbCols =
       msg.includes('thumbnail_url') ||
-      msg.includes('og_image_url') ||
-      msg.includes('published_at') ||
-      postsResInitial.error.code === '42703' ||
-      postsResInitial.error.code === 'PGRST204';
+      msg.includes('og_image_url');
 
-    if (missingThumbCols) {
+    if (missingPublishedAt && !missingThumbCols) {
+      const fallbackRes = await supabase
+        .from('blog_posts')
+        .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+
+      if (!fallbackRes.error) {
+        postsRes = {
+          ...fallbackRes,
+          data: (fallbackRes.data || []).map((item) => ({
+            ...item,
+            published_at: item.created_at || null,
+            tags: Array.isArray(item?.tags) ? item.tags : [],
+          })),
+        };
+      }
+    } else if (missingThumbCols || postsResInitial.error.code === '42703' || postsResInitial.error.code === 'PGRST204') {
       const fallbackRes = await supabase
         .from('blog_posts')
         .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, tags')
