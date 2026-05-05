@@ -1366,6 +1366,12 @@ function BlogEditorInner() {
     );
   }
 
+  function stripMissingPublishedAt(payload) {
+    if (!payload || typeof payload !== 'object') return payload;
+    const { published_at, ...rest } = payload;
+    return rest;
+  }
+
   async function saveWithFallback(basePayload, options = {}) {
     const extendedPayload = createExtendedPayload(basePayload, options);
 
@@ -1386,9 +1392,13 @@ function BlogEditorInner() {
     }
 
     if (response.error && isMissingColumnError(response.error)) {
+      const message = `${response.error.message || ''} ${response.error.details || ''}`.toLowerCase();
+      const retryBasePayload = message.includes('published_at')
+        ? stripMissingPublishedAt(basePayload)
+        : basePayload;
       response = editId
-        ? await supabase.from('blog_posts').update(basePayload).eq('id', editId)
-        : await supabase.from('blog_posts').insert({ ...basePayload, created_at: new Date().toISOString() });
+        ? await supabase.from('blog_posts').update(retryBasePayload).eq('id', editId)
+        : await supabase.from('blog_posts').insert({ ...retryBasePayload, created_at: new Date().toISOString() });
 
       if (!response.error) {
         alert('기본 저장은 완료됐어요. 다만 확장 컬럼(썸네일/OG/태그/제휴/SEO)이 DB에 없어서 일부 값은 저장되지 않았어요.');
