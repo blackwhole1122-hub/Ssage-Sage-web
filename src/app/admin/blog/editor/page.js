@@ -760,6 +760,7 @@ function buildSnapshot(form) {
     content: form.content || '',
     emoji: form.emoji || '📝',
     published: !!form.published,
+    publishedAt: form.publishedAt || null,
     categoryId: String(form.categoryId || ''),
     subcategoryId: String(form.subcategoryId || ''),
     scheduledAt: form.scheduledAt || '',
@@ -828,6 +829,7 @@ function BlogEditorInner() {
   const [content, setContent] = useState('');
   const [emoji, setEmoji] = useState('📝');
   const [published, setPublished] = useState(false);
+  const [publishedAt, setPublishedAt] = useState(null);
   const [categoryId, setCategoryId] = useState('');
   const [categories, setCategories] = useState([]);
   const [subcategoryId, setSubcategoryId] = useState('');
@@ -931,6 +933,7 @@ function BlogEditorInner() {
       content,
       emoji,
       published,
+      publishedAt,
       categoryId,
       subcategoryId,
       scheduledAt: scheduleEnabled ? scheduledAt : '',
@@ -946,7 +949,7 @@ function BlogEditorInner() {
       focusKeyword,
       seoWeights,
     });
-  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, faqItems, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
+  }, [title, seoTitle, slug, description, seoDescription, content, emoji, published, publishedAt, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, faqItems, affiliateDisclosure, editorMode, focusKeyword, seoWeights]);
 
   const isDirty = autosaveReady && initialSnapshot && currentSnapshot !== initialSnapshot;
 
@@ -987,6 +990,7 @@ function BlogEditorInner() {
         content: '',
         emoji: '📝',
         published: false,
+        publishedAt: null,
         categoryId: '',
         subcategoryId: '',
         scheduledAt: '',
@@ -1023,6 +1027,7 @@ function BlogEditorInner() {
             content: post.content || '',
             emoji: post.emoji || '📝',
             published: !!post.published,
+            publishedAt: post.published_at || null,
             categoryId: String(post.category_id || ''),
             subcategoryId: String(post.subcategory_id || ''),
             scheduledAt: post.scheduled_at ? toLocalDateTimeValue(post.scheduled_at) : '',
@@ -1077,9 +1082,10 @@ function BlogEditorInner() {
       form = { ...form, content: plainContent, faqItems: parsedFaqItems };
 
       setContent(plainContent);
-      setEmoji(form.emoji);
-      setPublished(form.published);
-      setCategoryId(form.categoryId);
+    setEmoji(form.emoji);
+    setPublished(form.published);
+    setPublishedAt(form.publishedAt || null);
+    setCategoryId(form.categoryId);
       setSubcategoryId(form.subcategoryId || '');
       setScheduledAt(form.scheduledAt);
       setScheduleEnabled(form.scheduleEnabled);
@@ -1162,7 +1168,7 @@ function BlogEditorInner() {
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, faqItems, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
+  }, [autosaveReady, loading, title, seoTitle, slug, description, seoDescription, content, emoji, published, publishedAt, categoryId, subcategoryId, scheduledAt, scheduleEnabled, thumbnailUrl, ogImageUrl, tags, ctaKeyword, ctaMessage, ctaExcludeKeywords, faqItems, affiliateDisclosure, editorMode, focusKeyword, seoWeights, draftKey]);
 
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -1312,6 +1318,11 @@ function BlogEditorInner() {
       content: mergeContentWithFaq(content, faqItems),
       emoji,
       published: isScheduled ? false : published,
+      published_at: isScheduled
+        ? toUtcISOString(effectiveScheduledAt)
+        : published
+          ? (publishedAt || new Date().toISOString())
+          : null,
       category_id: categoryId ? Number(categoryId) : null,
       subcategory_id: subcategoryId ? Number(subcategoryId) : null,
       scheduled_at: effectiveScheduledAt ? toUtcISOString(effectiveScheduledAt) : null,
@@ -1350,7 +1361,8 @@ function BlogEditorInner() {
       message.includes('cta_exclude_keywords') ||
       message.includes('seo_title') ||
       message.includes('seo_description') ||
-      message.includes('affiliate_disclosure')
+      message.includes('affiliate_disclosure') ||
+      message.includes('published_at')
     );
   }
 
@@ -1664,12 +1676,14 @@ function BlogEditorInner() {
       nextScheduleEnabled = false;
       nextScheduledAt = '';
       setPublished(true);
+      setPublishedAt(new Date().toISOString());
       setScheduleEnabled(false);
       setScheduledAt('');
     }
 
     if (mode === 'save-draft') {
       nextPublished = false;
+      setPublishedAt(null);
       setPublished(false);
     }
 
@@ -1683,6 +1697,7 @@ function BlogEditorInner() {
         return alert('예약 시간은 현재보다 이후여야 합니다.');
       }
       nextPublished = false;
+      setPublishedAt(toUtcISOString(nextScheduledAt));
       setPublished(false);
     }
 
@@ -1703,6 +1718,11 @@ function BlogEditorInner() {
       content: mergeContentWithFaq(content, faqItems),
       emoji,
       published: isScheduled ? false : nextPublished,
+      published_at: isScheduled
+        ? toUtcISOString(effectiveScheduledAt)
+        : nextPublished
+          ? (publishedAt || new Date().toISOString())
+          : null,
       category_id: categoryId ? Number(categoryId) : null,
       subcategory_id: subcategoryId ? Number(subcategoryId) : null,
       scheduled_at: effectiveScheduledAt ? toUtcISOString(effectiveScheduledAt) : null,
@@ -1731,6 +1751,7 @@ function BlogEditorInner() {
       content,
       emoji,
       published: basePayload.published,
+      publishedAt: basePayload.published_at || null,
       categoryId,
       subcategoryId,
       scheduledAt: effectiveScheduledAt,
@@ -1890,6 +1911,7 @@ function BlogEditorInner() {
       title: `${title.trim()} (복사본)`,
       slug: `${generateSlug(`${title.trim()} copy`)}-${Date.now().toString().slice(-4)}`,
       published: false,
+      published_at: null,
       scheduled_at: null,
       created_at: new Date().toISOString(),
     };

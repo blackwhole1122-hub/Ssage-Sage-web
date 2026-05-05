@@ -51,18 +51,27 @@ export default async function sitemap() {
   })) || [];
 
   // 2. 공개된 블로그 글 가져오기 (예약 시간 지난 글만 포함)
-  const { data: blogPosts } = await supabase
+  let { data: blogPosts, error: blogError } = await supabase
     .from('blog_posts')
-    .select('slug, updated_at, created_at, scheduled_at')
+    .select('slug, updated_at, published_at, created_at, scheduled_at')
     .eq('published', true)
-    .order('created_at', { ascending: false });
+    .order('published_at', { ascending: false, nullsFirst: false });
+
+  if (blogError && (blogError.code === '42703' || String(blogError.message || '').toLowerCase().includes('published_at'))) {
+    const fallback = await supabase
+      .from('blog_posts')
+      .select('slug, updated_at, created_at, scheduled_at')
+      .eq('published', true)
+      .order('created_at', { ascending: false });
+    blogPosts = (fallback.data || []).map((post) => ({ ...post, published_at: post.created_at || null }));
+  }
 
   const now = new Date();
   const blogEntries = (blogPosts || [])
     .filter((post) => !post.scheduled_at || new Date(post.scheduled_at) <= now)
     .map((post) => ({
       url: `${baseUrl}/blog/${post.slug}`,
-      lastModified: post.updated_at || post.created_at || new Date(),
+      lastModified: post.updated_at || post.published_at || post.created_at || new Date(),
       changeFrequency: 'weekly',
       priority: 0.7,
     }));

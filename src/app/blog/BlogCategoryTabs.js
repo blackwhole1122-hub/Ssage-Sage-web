@@ -25,6 +25,7 @@ export default function BlogCategoryTabs({
       }),
     []
   );
+  const resolvePostDate = (post) => post?.published_at || post?.created_at;
 
   const initialCategoryId = useMemo(() => {
     if (!initialCategoryName) return null;
@@ -246,7 +247,7 @@ export default function BlogCategoryTabs({
                       {post.title}
                     </h2>
                     <div className="text-[12px] text-[#94A3B8] font-medium pt-3 border-t border-[#E2E8F0]">
-                      {postDateFormatter.format(new Date(post.created_at))}
+                      {postDateFormatter.format(new Date(resolvePostDate(post)))}
                     </div>
                   </div>
                 </Link>
@@ -272,7 +273,7 @@ export default function BlogCategoryTabs({
                 </p>
 
                 <div className="text-[12px] text-[#94A3B8] font-medium pt-3 border-t border-[#E2E8F0]">
-                  {postDateFormatter.format(new Date(post.created_at))}
+                  {postDateFormatter.format(new Date(resolvePostDate(post)))}
                 </div>
               </Link>
             );

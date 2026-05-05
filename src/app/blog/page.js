@@ -35,9 +35,9 @@ async function getData() {
   const [postsResInitial, catsRes, subcatsRes] = await Promise.all([
     supabase
       .from('blog_posts')
-      .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
+      .select('id, slug, title, description, emoji, created_at, published_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
       .eq('published', true)
-      .order('created_at', { ascending: false }),
+      .order('published_at', { ascending: false, nullsFirst: false }),
     supabase
       .from('blog_categories')
       .select('*')
@@ -54,6 +54,7 @@ async function getData() {
     const missingThumbCols =
       msg.includes('thumbnail_url') ||
       msg.includes('og_image_url') ||
+      msg.includes('published_at') ||
       postsResInitial.error.code === '42703' ||
       postsResInitial.error.code === 'PGRST204';
 
@@ -69,6 +70,7 @@ async function getData() {
           ...fallbackRes,
           data: (fallbackRes.data || []).map((item) => ({
             ...item,
+            published_at: item.created_at || null,
             thumbnail_url: null,
             og_image_url: null,
             tags: Array.isArray(item?.tags) ? item.tags : [],

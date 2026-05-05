@@ -26,12 +26,23 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   );
 
-  const { data: blogRows, error: blogError } = await supabase
+  let { data: blogRows, error: blogError } = await supabase
     .from('blog_posts')
-    .select('slug, title, seo_title, description, seo_description, content, created_at, updated_at, scheduled_at, published')
+    .select('slug, title, seo_title, description, seo_description, content, created_at, published_at, updated_at, scheduled_at, published')
     .eq('published', true)
-    .order('created_at', { ascending: false })
+    .order('published_at', { ascending: false, nullsFirst: false })
     .limit(60);
+
+  if (blogError && (blogError.code === '42703' || String(blogError.message || '').toLowerCase().includes('published_at'))) {
+    const fallback = await supabase
+      .from('blog_posts')
+      .select('slug, title, seo_title, description, seo_description, content, created_at, updated_at, scheduled_at, published')
+      .eq('published', true)
+      .order('created_at', { ascending: false })
+      .limit(60);
+    blogRows = (fallback.data || []).map((row) => ({ ...row, published_at: row.created_at || null }));
+    blogError = fallback.error;
+  }
 
   if (blogError) {
     return new Response('Failed to build RSS feed', { status: 500 });
@@ -106,7 +117,7 @@ export async function GET() {
         post.description ||
         String(post.content || '').replace(/\s+/g, ' ').trim().slice(0, 160);
       const link = `${SITE_URL}/blog/${post.slug}`;
-      const pubDate = toRfc2822(post.updated_at || post.created_at);
+      const pubDate = toRfc2822(post.updated_at || post.published_at || post.created_at);
       return { title, description, link, pubDate };
     }),
     ...thermometerRows.map((row) => {

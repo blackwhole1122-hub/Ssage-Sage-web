@@ -11,6 +11,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
 const AFFILIATE_DISCLOSURE_TEXT = '이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공 받습니다.';
 const SITE_NAME = '싸게사게';
+const resolvePublishedDate = (post) => post?.published_at || post?.created_at;
 
 function escapeHtml(str = '') {
   return str
@@ -259,7 +260,7 @@ async function getPost(slug) {
   const supabase = createClient(supabaseUrl, supabaseKey);
   const normalizedSlug = decodeURIComponent(slug).normalize('NFC');
 
-  const extendedSelect = 'id, slug, title, seo_title, description, seo_description, content, emoji, created_at, updated_at, scheduled_at, og_image_url, thumbnail_url, tags, affiliate_disclosure, category_id, subcategory_id, blog_categories(name, slug)';
+  const extendedSelect = 'id, slug, title, seo_title, description, seo_description, content, emoji, created_at, published_at, updated_at, scheduled_at, og_image_url, thumbnail_url, tags, affiliate_disclosure, category_id, subcategory_id, blog_categories(name, slug)';
   const baseSelect = 'id, slug, title, description, content, emoji, created_at, updated_at, scheduled_at, category_id, subcategory_id, blog_categories(name, slug)';
 
   let { data, error } = await supabase
@@ -293,6 +294,7 @@ async function getPost(slug) {
   }
   return {
     ...data,
+    published_at: data?.published_at || data?.created_at || null,
     seo_title: data?.seo_title || null,
     seo_description: data?.seo_description || null,
     og_image_url: data?.og_image_url || null,
@@ -309,7 +311,7 @@ async function getRelatedPosts(post) {
 
   let query = supabase
     .from('blog_posts')
-    .select('id, slug, title, description, created_at, category_id')
+    .select('id, slug, title, description, created_at, published_at, category_id')
     .eq('published', true)
     .neq('id', post.id)
     .or(`scheduled_at.is.null,scheduled_at.lte.${nowIso}`)
@@ -333,13 +335,13 @@ function buildSubcategoryLinksHtml(title = '같은 세부카테고리 글 더보
 }
 
 async function getNeighborSubcategoryPosts(post) {
-  if (!post?.id || !post?.subcategory_id || !post?.created_at) return [];
+  if (!post?.id || !post?.subcategory_id) return [];
   const supabase = createClient(supabaseUrl, supabaseKey);
   const nowIso = new Date().toISOString();
 
   const olderQuery = supabase
     .from('blog_posts')
-    .select('id, slug, title, created_at')
+    .select('id, slug, title, created_at, published_at')
     .eq('published', true)
     .eq('subcategory_id', post.subcategory_id)
     .neq('id', post.id)
@@ -350,7 +352,7 @@ async function getNeighborSubcategoryPosts(post) {
 
   const newerQuery = supabase
     .from('blog_posts')
-    .select('id, slug, title, created_at')
+    .select('id, slug, title, created_at, published_at')
     .eq('published', true)
     .eq('subcategory_id', post.subcategory_id)
     .neq('id', post.id)
@@ -386,6 +388,7 @@ export async function generateMetadata({ params }) {
   const seoTitle = String(post.seo_title || '').trim();
   const summary = String(post.seo_description || post.description || removeMarkdown(post.content || '').slice(0, 155)).trim();
   const image = getPreferredPostImage(post);
+  const publishedDate = resolvePublishedDate(post);
 
   return {
     title: `${seoTitle || post.title} | ${SITE_NAME} 블로그`,
@@ -399,7 +402,7 @@ export async function generateMetadata({ params }) {
       siteName: SITE_NAME,
       locale: 'ko_KR',
       type: 'article',
-      publishedTime: post.created_at,
+      publishedTime: publishedDate,
       modifiedTime: post.updated_at,
       images: [{ url: image, width: 1200, height: 630 }],
     },
@@ -430,6 +433,7 @@ export default async function BlogPostPage({ params }) {
   const keywords = Array.isArray(post.tags) ? post.tags.filter(Boolean) : [];
   const relatedPosts = await getRelatedPosts(post);
   const shortSlug = encodeBlogShortSlug(post.id);
+  const publishedDate = resolvePublishedDate(post);
   const wordCount = removeMarkdown(post.content || '').split(/\s+/).filter(Boolean).length;
   const readingMinutes = Math.max(1, Math.ceil(wordCount / 220));
 
@@ -440,8 +444,8 @@ export default async function BlogPostPage({ params }) {
       mainEntityOfPage: canonical,
       headline: post.title,
       description: summary,
-      datePublished: post.created_at,
-      dateModified: post.updated_at || post.created_at,
+      datePublished: publishedDate,
+      dateModified: post.updated_at || publishedDate,
       articleSection: categoryName || undefined,
       keywords: keywords.length ? keywords.join(', ') : undefined,
       wordCount,
@@ -548,7 +552,7 @@ export default async function BlogPostPage({ params }) {
           )}
           <div className="flex items-center gap-3 text-[12px] text-[#94A3B8]">
             <time>
-              {new Date(post.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+              {new Date(publishedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
             </time>
             <span>·</span>
             <span>약 {readingMinutes}분 읽기</span>
