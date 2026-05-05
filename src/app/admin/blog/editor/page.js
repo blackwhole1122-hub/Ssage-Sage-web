@@ -2734,10 +2734,9 @@ function BlogEditorInner() {
       )}
 
       {imageDialogOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4"
-          onClick={closeImageDialog}
-        >
+              <div
+                className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4"
+              >
           <div
             className="w-full max-w-lg rounded-3xl border border-gray-200 bg-white p-5 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
