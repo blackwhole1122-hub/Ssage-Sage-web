@@ -35,7 +35,7 @@ async function getData() {
   const [postsResInitial, catsRes, subcatsRes] = await Promise.all([
     supabase
       .from('blog_posts')
-      .select('id, slug, title, description, emoji, created_at, published_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
+      .select('*')
       .eq('published', true)
       .order('published_at', { ascending: false, nullsFirst: false }),
     supabase
@@ -48,96 +48,50 @@ async function getData() {
       .order('id', { ascending: true }),
   ]);
 
+  const normalizePost = (item = {}) => ({
+    ...item,
+    published_at: item.published_at || item.created_at || null,
+    thumbnail_url: item.thumbnail_url ?? item.og_image_url ?? null,
+    og_image_url: item.og_image_url ?? item.thumbnail_url ?? null,
+    tags: Array.isArray(item?.tags) ? item.tags : [],
+  });
+
   let postsRes = postsResInitial;
   if (postsResInitial?.error) {
     const msg = `${postsResInitial.error.message || ''} ${postsResInitial.error.details || ''}`.toLowerCase();
     const missingPublishedAt = msg.includes('published_at');
-    const missingThumbCols =
-      msg.includes('thumbnail_url') ||
-      msg.includes('og_image_url');
-    const missingTags = msg.includes('tags');
-
-    if (missingPublishedAt && !missingThumbCols && !missingTags) {
+    if (missingPublishedAt) {
       const fallbackRes = await supabase
         .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
+        .select('*')
         .eq('published', true)
         .order('created_at', { ascending: false });
 
       if (!fallbackRes.error) {
         postsRes = {
           ...fallbackRes,
-          data: (fallbackRes.data || []).map((item) => ({
-            ...item,
-            published_at: item.created_at || null,
-            thumbnail_url: item.thumbnail_url ?? item.og_image_url ?? null,
-            og_image_url: item.og_image_url ?? item.thumbnail_url ?? null,
-            tags: Array.isArray(item?.tags) ? item.tags : [],
-          })),
-        };
-      }
-    } else if (missingThumbCols) {
-      const fallbackRes = await supabase
-        .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, published_at, category_id, subcategory_id, scheduled_at, tags')
-        .eq('published', true)
-        .order('published_at', { ascending: false, nullsFirst: false });
-
-      if (!fallbackRes.error) {
-        postsRes = {
-          ...fallbackRes,
-          data: (fallbackRes.data || []).map((item) => ({
-            ...item,
-            published_at: item.published_at || item.created_at || null,
-            thumbnail_url: null,
-            og_image_url: null,
-            tags: Array.isArray(item?.tags) ? item.tags : [],
-          })),
-        };
-      }
-    } else if (missingTags) {
-      const fallbackRes = await supabase
-        .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, published_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url')
-        .eq('published', true)
-        .order('published_at', { ascending: false, nullsFirst: false });
-
-      if (!fallbackRes.error) {
-        postsRes = {
-          ...fallbackRes,
-          data: (fallbackRes.data || []).map((item) => ({
-            ...item,
-            published_at: item.published_at || item.created_at || null,
-            thumbnail_url: item.thumbnail_url ?? item.og_image_url ?? null,
-            og_image_url: item.og_image_url ?? item.thumbnail_url ?? null,
-            tags: [],
-          })),
+          data: (fallbackRes.data || []).map(normalizePost),
         };
       }
     } else if (postsResInitial.error.code === '42703' || postsResInitial.error.code === 'PGRST204') {
       const fallbackRes = await supabase
         .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at')
+        .select('*')
         .eq('published', true)
         .order('created_at', { ascending: false });
 
       if (!fallbackRes.error) {
         postsRes = {
           ...fallbackRes,
-          data: (fallbackRes.data || []).map((item) => ({
-            ...item,
-            published_at: item.created_at || null,
-            thumbnail_url: null,
-            og_image_url: null,
-            tags: [],
-          })),
+          data: (fallbackRes.data || []).map(normalizePost),
         };
       }
     }
   }
 
+  const normalizedPosts = (postsRes.data || []).map(normalizePost);
   const now = new Date();
-  const posts = (postsRes.data || []).filter((post) => {
+  const posts = normalizedPosts.filter((post) => {
     if (!post.scheduled_at) return true;
     return new Date(post.scheduled_at) <= now;
   });
