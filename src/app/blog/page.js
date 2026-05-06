@@ -55,8 +55,9 @@ async function getData() {
     const missingThumbCols =
       msg.includes('thumbnail_url') ||
       msg.includes('og_image_url');
+    const missingTags = msg.includes('tags');
 
-    if (missingPublishedAt && !missingThumbCols) {
+    if (missingPublishedAt && !missingThumbCols && !missingTags) {
       const fallbackRes = await supabase
         .from('blog_posts')
         .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url, tags')
@@ -69,14 +70,54 @@ async function getData() {
           data: (fallbackRes.data || []).map((item) => ({
             ...item,
             published_at: item.created_at || null,
+            thumbnail_url: item.thumbnail_url ?? item.og_image_url ?? null,
+            og_image_url: item.og_image_url ?? item.thumbnail_url ?? null,
             tags: Array.isArray(item?.tags) ? item.tags : [],
           })),
         };
       }
-    } else if (missingThumbCols || postsResInitial.error.code === '42703' || postsResInitial.error.code === 'PGRST204') {
+    } else if (missingThumbCols) {
       const fallbackRes = await supabase
         .from('blog_posts')
-        .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at, tags')
+        .select('id, slug, title, description, emoji, created_at, published_at, category_id, subcategory_id, scheduled_at, tags')
+        .eq('published', true)
+        .order('published_at', { ascending: false, nullsFirst: false });
+
+      if (!fallbackRes.error) {
+        postsRes = {
+          ...fallbackRes,
+          data: (fallbackRes.data || []).map((item) => ({
+            ...item,
+            published_at: item.published_at || item.created_at || null,
+            thumbnail_url: null,
+            og_image_url: null,
+            tags: Array.isArray(item?.tags) ? item.tags : [],
+          })),
+        };
+      }
+    } else if (missingTags) {
+      const fallbackRes = await supabase
+        .from('blog_posts')
+        .select('id, slug, title, description, emoji, created_at, published_at, category_id, subcategory_id, scheduled_at, thumbnail_url, og_image_url')
+        .eq('published', true)
+        .order('published_at', { ascending: false, nullsFirst: false });
+
+      if (!fallbackRes.error) {
+        postsRes = {
+          ...fallbackRes,
+          data: (fallbackRes.data || []).map((item) => ({
+            ...item,
+            published_at: item.published_at || item.created_at || null,
+            thumbnail_url: item.thumbnail_url ?? item.og_image_url ?? null,
+            og_image_url: item.og_image_url ?? item.thumbnail_url ?? null,
+            tags: [],
+          })),
+        };
+      }
+    } else if (postsResInitial.error.code === '42703' || postsResInitial.error.code === 'PGRST204') {
+      const fallbackRes = await supabase
+        .from('blog_posts')
+        .select('id, slug, title, description, emoji, created_at, category_id, subcategory_id, scheduled_at')
         .eq('published', true)
         .order('created_at', { ascending: false });
 
@@ -88,7 +129,7 @@ async function getData() {
             published_at: item.created_at || null,
             thumbnail_url: null,
             og_image_url: null,
-            tags: Array.isArray(item?.tags) ? item.tags : [],
+            tags: [],
           })),
         };
       }
