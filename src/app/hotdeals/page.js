@@ -1,5 +1,7 @@
-﻿import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
+import { redirect } from 'next/navigation';
 import HotdealsClient from './HotdealsClient';
+import { DEALS_SECTION_ENABLED, DEFAULT_PUBLIC_LANDING } from '@/lib/siteSections';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -10,6 +12,12 @@ export const metadata = {
   description:
     '커뮤니티 실시간 핫딜을 한곳에서 모아보고 가격, 출처, 상품 정보를 빠르게 확인하세요.',
   alternates: { canonical: `${SITE_URL}/hotdeals` },
+  robots: DEALS_SECTION_ENABLED
+    ? undefined
+    : {
+        index: false,
+        follow: false,
+      },
   openGraph: {
     title: '실시간 핫딜 모음 | 커뮤니티 특가/최저가 탐색',
     description:
@@ -43,6 +51,10 @@ async function getInitialDeals({ sourceFilter, searchQuery }) {
 }
 
 export default async function HotdealsPage({ searchParams }) {
+  if (!DEALS_SECTION_ENABLED) {
+    redirect(DEFAULT_PUBLIC_LANDING);
+  }
+
   const params = await searchParams;
   const initialCategory = typeof params?.category === 'string' ? params.category : '전체';
   const initialSource = typeof params?.source === 'string' ? params.source : '전체';

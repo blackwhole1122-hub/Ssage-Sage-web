@@ -1,6 +1,7 @@
 'use client'
 import { Suspense, useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { COUPANG_SECTION_ENABLED, DEFAULT_PUBLIC_LANDING } from '@/lib/siteSections';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
@@ -233,6 +234,13 @@ function CoupangHotdealsInner() {
   );
 }
 export default function CoupangHotdealsPage() {
+  if (!COUPANG_SECTION_ENABLED) {
+    if (typeof window !== 'undefined') {
+      window.location.replace(DEFAULT_PUBLIC_LANDING);
+    }
+    return null;
+  }
+
   return (
     <Suspense fallback={<div className="py-20 text-center">쿠팡 핫딜을 불러오는 중...</div>}>
       <CoupangHotdealsInner />

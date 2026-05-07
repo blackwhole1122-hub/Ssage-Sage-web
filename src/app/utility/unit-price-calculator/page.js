@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import CoupangInlineHorizontalBanner from '@/components/CoupangInlineHorizontalBanner';
+import { getPrimaryNavLinks } from '@/lib/siteSections';
 
 // ── 단위 변환 ──────────────────────────────────────────────────
 const UNIT_BASE = {
@@ -61,6 +62,7 @@ function getMinIdxAt(results, stepIdx) {
 }
 
 export default function UnitPriceCalculatorPage() {
+  const navLinks = getPrimaryNavLinks();
   const [products, setProducts] = useState([emptyProduct(), emptyProduct()]);
 
   const update = useCallback((idx, field, val) => {
@@ -105,7 +107,7 @@ export default function UnitPriceCalculatorPage() {
           </Link>
         </div>
         <nav className="px-4 pb-1 flex items-center gap-5">
-          {[['핫딜모음','/hotdeals'],['쿠팡핫딜','/coupang'],['핫딜온도계','/hotdeal-thermometer'],['정보모음','/blog'],['유틸리티','/utility']].map(([label, href]) => (
+          {navLinks.map(({ href, label }) => (
             <Link key={href} href={href} className={`py-3 text-[14px] font-medium transition-colors ${href === '/utility' ? 'relative font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full' : 'text-[#64748B] hover:text-[#1E293B]'}`}>
               {label}
             </Link>

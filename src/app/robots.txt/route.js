@@ -1,8 +1,30 @@
+import {
+  COUPANG_SECTION_ENABLED,
+  DEALS_SECTION_ENABLED,
+  UTILITY_SECTION_ENABLED,
+} from '@/lib/siteSections';
+
 export async function GET() {
+  const hiddenSections = [];
+
+  if (!DEALS_SECTION_ENABLED) {
+    hiddenSections.push('Disallow: /hotdeals/');
+    hiddenSections.push('Disallow: /deal/');
+  }
+
+  if (!COUPANG_SECTION_ENABLED) {
+    hiddenSections.push('Disallow: /coupang/');
+  }
+
+  if (!UTILITY_SECTION_ENABLED) {
+    hiddenSections.push('Disallow: /utility/');
+  }
+
   const body = `User-agent: *
 Allow: /
 Disallow: /api/
 Disallow: /admin/
+${hiddenSections.join('\n')}
 
 Sitemap: https://www.ssagesage.com/sitemap.xml
 Sitemap: https://www.ssagesage.com/feed.xml
@@ -16,4 +38,3 @@ Sitemap: https://www.ssagesage.com/feed.xml
     },
   });
 }
-

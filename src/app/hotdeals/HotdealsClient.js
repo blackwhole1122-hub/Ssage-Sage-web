@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useKeywordGroups } from '@/lib/keywords';
 import { getUnitPrice, calculateGrade } from '@/lib/priceUtils';
 import { extractPreferredUnitFromKeywords, matchesGroupByTitle } from '@/lib/keywordMatcher';
+import { getPrimaryNavLinks } from '@/lib/siteSections';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
@@ -11,6 +12,7 @@ import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
 function HotdealsListInner({ initialDeals = [], initialSource = '전체', initialQuery = '', initialCategory = '전체' }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const navLinks = getPrimaryNavLinks();
   
   // ✨ URL 파라미터에서 초기값 읽기
   const [category, setCategory] = useState(initialCategory);
@@ -203,11 +205,17 @@ const fetchDeals = useCallback(async (pageNum = 0, reset = false) => {
 
         {/* ── 네비게이션 탭 ── */}
         <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5 border-b border-[#E2E8F0]">
-          <Link href="/hotdeals" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">핫딜모음</Link>
-          <Link href="/coupang" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">쿠팡핫딜</Link>
-          <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">핫딜온도계</Link>
-          <Link href="/blog" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">정보모음</Link>
-          <Link href="/utility" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">유틸리티</Link>
+          {navLinks.map(({ key, href, label }) => (
+            <Link
+              key={key}
+              href={href}
+              className={key === 'hotdeals'
+                ? 'relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full'
+                : 'py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors'}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
 
         {/* ── 검색바 ── */}

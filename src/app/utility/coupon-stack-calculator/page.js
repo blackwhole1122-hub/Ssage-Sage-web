@@ -3,15 +3,10 @@
 import { useState, useCallback } from 'react';
 import Link from 'next/link';
 import CoupangInlineHorizontalBanner from '@/components/CoupangInlineHorizontalBanner';
+import { getPrimaryNavLinks } from '@/lib/siteSections';
 
 // ── 네비게이션 ─────────────────────────────────────────────────
-const NAV_LINKS = [
-  ['핫딜모음', '/hotdeals'],
-  ['쿠팡핫딜', '/coupang'],
-  ['핫딜온도계', '/hotdeal-thermometer'],
-  ['정보모음', '/blog'],
-  ['유틸리티', '/utility'],
-];
+const NAV_LINKS = getPrimaryNavLinks().map(({ label, href }) => [label, href]);
 
 // ── 할인 단계 타입 ─────────────────────────────────────────────
 const STEP_TYPES = [

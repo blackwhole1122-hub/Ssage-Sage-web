@@ -3,6 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { COUPANG_SECTION_ENABLED, DEFAULT_PUBLIC_LANDING } from '@/lib/siteSections';
 
 export default function CoupangDetailPage({ params: promiseParams }) {
   const params = use(promiseParams);
@@ -11,6 +12,11 @@ export default function CoupangDetailPage({ params: promiseParams }) {
   const [referrer, setReferrer] = useState('/coupang');
 
   useEffect(() => {
+    if (!COUPANG_SECTION_ENABLED && typeof window !== 'undefined') {
+      window.location.replace(DEFAULT_PUBLIC_LANDING);
+      return;
+    }
+
     if (typeof window !== 'undefined') {
       const savedReferrer = sessionStorage.getItem('coupangListUrl');
       if (savedReferrer) setReferrer(savedReferrer);

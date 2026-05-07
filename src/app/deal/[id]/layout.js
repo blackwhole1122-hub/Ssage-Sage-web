@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { DEALS_SECTION_ENABLED } from '@/lib/siteSections';
 
 const SITE_URL = 'https://www.ssagesage.com';
 const SITE_NAME = '싸게사게';
@@ -49,6 +50,14 @@ async function getDeal(id) {
 export async function generateMetadata({ params }) {
   const { id } = await params;
   const canonical = `${SITE_URL}/deal/${id}`;
+
+  if (!DEALS_SECTION_ENABLED) {
+    return {
+      robots: { index: false, follow: false },
+      alternates: { canonical },
+    };
+  }
+
   const deal = await getDeal(id);
 
   if (!deal) {

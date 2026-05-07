@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import CoupangInlineHorizontalBanner from '@/components/CoupangInlineHorizontalBanner';
+import { getPrimaryNavLinks } from '@/lib/siteSections';
 
 export default function ImageBackgroundRemoverPage() {
+  const navLinks = getPrimaryNavLinks();
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [results, setResults] = useState(null); // { weak, normal, strong }
@@ -184,11 +186,17 @@ export default function ImageBackgroundRemoverPage() {
         </div>
 
         <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
-          <Link href="/hotdeals" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">핫딜모음</Link>
-          <Link href="/coupang" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">쿠팡핫딜</Link>
-          <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">핫딜온도계</Link>
-          <Link href="/blog" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">정보모음</Link>
-          <Link href="/utility" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">유틸리티</Link>
+          {navLinks.map(({ key, href, label }) => (
+            <Link
+              key={key}
+              href={href}
+              className={key === 'utility'
+                ? 'relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full'
+                : 'py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors'}
+            >
+              {label}
+            </Link>
+          ))}
         </nav>
       </header>
 

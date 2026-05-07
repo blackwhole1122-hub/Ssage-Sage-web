@@ -99,3 +99,9 @@ body {
     rgba(10, 186, 181, 0.0) 100%
   );
 }
+
+nav a[href="/hotdeals"],
+nav a[href="/coupang"],
+nav a[href="/utility"] {
+  display: none !important;
+}

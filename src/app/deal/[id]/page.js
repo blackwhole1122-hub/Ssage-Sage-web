@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
+import { DEALS_SECTION_ENABLED, DEFAULT_PUBLIC_LANDING } from '@/lib/siteSections';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DOMPurify from 'dompurify';
@@ -46,6 +47,11 @@ export default function DealDetailPage({ params: promiseParams }) {
   };
 
   useEffect(() => {
+    if (!DEALS_SECTION_ENABLED && typeof window !== 'undefined') {
+      window.location.replace(DEFAULT_PUBLIC_LANDING);
+      return;
+    }
+
     async function fetchDeal() {
       const { data, error } = await supabase
         .from('hotdeals')
@@ -240,6 +246,9 @@ export default function DealDetailPage({ params: promiseParams }) {
     .replace(/(?:&quot;|&#34;|&#x22;)\s*&lt;\s*$/i, '')
     .replace(/^\s*(?:&quot;|&#34;|&#x22;)\s*&lt;\s*$/gim, '')
     .replace(/(?:\s|&nbsp;)*(?:&lt;|&#60;|&#x3c;|<)\s*$/i, '');
+  const hasGeneralAffiliateNotice = (deal.content || '').includes(
+    '이 포스팅은 제휴마케팅 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.'
+  );
 
   const formatDate = (iso) => {
     if (!iso) return '';
@@ -321,6 +330,11 @@ export default function DealDetailPage({ params: promiseParams }) {
             className="prose prose-sm max-w-none text-[#334155] leading-relaxed break-words [&_*]:!text-left prose-p:my-1 prose-br:hidden"
             dangerouslySetInnerHTML={{ __html: sanitizedContentNormalized }}
           />
+          {hasGeneralAffiliateNotice && (
+            <p className="mt-4 text-[12px] leading-6 text-[#64748B]">
+              이 포스팅은 제휴마케팅 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받을 수 있습니다.
+            </p>
+          )}
         </div>
 
         {!thermometerInfo.loading && (
@@ -375,7 +389,7 @@ export default function DealDetailPage({ params: promiseParams }) {
 
         {deal.shop_url && (
           <a
-            href={deal.shop_url}
+            href={`/api/out?url=${encodeURIComponent(deal.shop_url)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="block w-full bg-[#0ABAB5] text-white text-center py-4 rounded-xl font-bold mb-3 shadow-sm hover:bg-[#089490] transition-colors"

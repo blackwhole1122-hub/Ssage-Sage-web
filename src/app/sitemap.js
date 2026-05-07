@@ -1,5 +1,6 @@
 // src/app/sitemap.js
 import { createClient } from '@supabase/supabase-js';
+import { COUPANG_SECTION_ENABLED, DEALS_SECTION_ENABLED, UTILITY_SECTION_ENABLED } from '@/lib/siteSections';
 
 export const revalidate = 60;
 
@@ -19,21 +20,27 @@ export default async function sitemap() {
     '/utility/nutrition-price-calculator',
     '/utility/unit-price-calculator',
   ];
-  const utilityEntries = utilityPaths.map((path) => ({
-    url: `${baseUrl}${path}`,
-    lastModified: new Date(),
-    changeFrequency: 'weekly',
-    priority: path === '/utility' ? 0.8 : 0.7,
-  }));
+  const utilityEntries = UTILITY_SECTION_ENABLED
+    ? utilityPaths.map((path) => ({
+        url: `${baseUrl}${path}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly',
+        priority: path === '/utility' ? 0.8 : 0.7,
+      }))
+    : [];
 
   const staticPaths = [
     { path: '/', priority: 1, changeFrequency: 'daily' },
-    { path: '/hotdeals', priority: 0.9, changeFrequency: 'hourly' },
-    { path: '/coupang', priority: 0.9, changeFrequency: 'hourly' },
     { path: '/hotdeal-thermometer', priority: 0.9, changeFrequency: 'daily' },
     { path: '/blog', priority: 0.8, changeFrequency: 'weekly' },
     { path: '/privacy', priority: 0.4, changeFrequency: 'monthly' },
   ];
+  if (DEALS_SECTION_ENABLED) {
+    staticPaths.splice(1, 0, { path: '/hotdeals', priority: 0.9, changeFrequency: 'hourly' });
+  }
+  if (COUPANG_SECTION_ENABLED) {
+    staticPaths.splice(DEALS_SECTION_ENABLED ? 2 : 1, 0, { path: '/coupang', priority: 0.9, changeFrequency: 'hourly' });
+  }
   const staticEntries = staticPaths.map((item) => ({
     url: `${baseUrl}${item.path}`,
     lastModified: new Date(),
