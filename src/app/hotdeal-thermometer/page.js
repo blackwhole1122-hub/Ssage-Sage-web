@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { calculateGrade } from '@/lib/priceUtils';
-import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
 import { buildThermometerMeta } from '@/lib/seoTemplates';
  
 const categoryOrder = ['식품', '생활잡화', '가전/디지털', '상품권'];
@@ -278,11 +277,6 @@ export default async function HotdealThermometerPage({ searchParams }) {
       </footer>
           </div>
 
-          <aside className="hidden lg:block w-[250px] shrink-0 pt-24 sticky top-24 self-start">
-            <div>
-              <CoupangSidebarBanner mode="desktop" />
-            </div>
-          </aside>
         </div>
       </div>
     </div>

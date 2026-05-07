@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
 import { buildExternalRel } from '@/lib/linkRel';
 import { encodeBlogShortSlug } from '@/lib/shortLinks';
 import BlogShareButton from './BlogShareButton';
@@ -630,11 +629,6 @@ export default async function BlogPostPage({ params }) {
               </article>
             </div>
 
-          <aside className="hidden lg:block w-[250px] shrink-0 pt-24 sticky top-24 self-start">
-              <div>
-                <CoupangSidebarBanner mode="desktop" />
-              </div>
-            </aside>
           </div>
         </div>
       </div>

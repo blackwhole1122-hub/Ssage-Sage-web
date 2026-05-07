@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import BlogCategoryTabs from './BlogCategoryTabs.js';
-import CoupangSidebarBanner from '@/components/CoupangSidebarBanner';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -194,11 +193,6 @@ export default async function BlogListPage({ searchParams }) {
             </footer>
           </div>
 
-          <aside className="hidden lg:block w-[250px] shrink-0 pt-24 sticky top-24 self-start">
-            <div>
-              <CoupangSidebarBanner mode="desktop" />
-            </div>
-          </aside>
         </div>
       </div>
     </div>
