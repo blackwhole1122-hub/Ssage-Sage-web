@@ -283,8 +283,6 @@ export default async function ThermometerDetailPage({ params }) {
 
   const { product, refLow, refAvg, lastPrice, unitLabel, grade, processedHistory, historyRows } = data;
   const canonical = `${SITE_URL}/hotdeal-thermometer/${product.slug}`;
-  const coupangSearchUrl = `https://www.coupang.com/np/search?component=&q=${encodeURIComponent(product.group_name)}`;
-  const coupangRedirectUrl = `/api/coupang?url=${encodeURIComponent(coupangSearchUrl)}`;
   const hasComparison = refAvg > 0 && lastPrice > 0;
   const diffPercent = hasComparison ? Math.abs(((lastPrice - refAvg) / refAvg) * 100) : 0;
   const comparisonType = !hasComparison ? 'none' : lastPrice < refAvg ? 'lower' : lastPrice > refAvg ? 'higher' : 'same';
@@ -413,19 +411,6 @@ export default async function ThermometerDetailPage({ params }) {
             ))}
           </div>
         </section>
-
-        <div>
-          <a
-            href={coupangRedirectUrl}
-            rel="sponsored"
-            className="block w-full text-center bg-[#0ABAB5] hover:bg-[#09A7A2] text-white font-extrabold text-[16px] py-4 rounded-2xl transition-colors"
-          >
-            쿠팡에서 최저가 구매하기
-          </a>
-          <p className="mt-2 text-[11px] text-gray-500 text-center">
-            이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공 받습니다.
-          </p>
-        </div>
       </main>
     </div>
   );
