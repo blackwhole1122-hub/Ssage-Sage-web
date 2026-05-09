@@ -296,24 +296,22 @@ export default async function ThermometerDetailPage({ params }) {
     processedHistory,
   });
 
-  const productJsonLd = {
+  const faqJsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: `${product.group_name} 가격 이력`,
-    category: product.category || undefined,
-    image: `https://bpoerueomemrufjoxrej.supabase.co/storage/v1/object/public/thermometer/${product.slug}.png`,
-    offers: {
-      '@type': 'Offer',
-      priceCurrency: 'KRW',
-      price: lastPrice > 0 ? Math.floor(lastPrice) : undefined,
-      availability: 'https://schema.org/InStock',
-      url: canonical,
-    },
+    '@type': 'FAQPage',
+    mainEntity: analysis.faq.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
   };
 
   return (
     <div className="max-w-xl mx-auto bg-gray-50 min-h-screen">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }} />
       <header className="p-4 flex items-center bg-white border-b sticky top-0 z-10">
         <Link href="/hotdeal-thermometer" className="mr-4">
           ←
