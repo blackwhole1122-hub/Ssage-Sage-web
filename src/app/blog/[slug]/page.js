@@ -512,9 +512,6 @@ export default async function BlogPostPage({ params }) {
                   <Link href="/blog" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
                     블로그
                   </Link>
-                  <Link href="/login" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    로그인
-                  </Link>
                 </nav>
               </header>
 
