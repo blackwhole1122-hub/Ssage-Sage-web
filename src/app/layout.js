@@ -11,12 +11,11 @@ const SITE_NAME = '싸게사게';
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | 실시간 핫딜 모음과 가격 분석`,
+    default: `${SITE_NAME} | 정보모음`,
     template: `%s | ${SITE_NAME}`,
   },
-  description:
-    '커뮤니티 핫딜, 쿠팡딜, 가격비교 도구를 한 곳에서 확인하는 절약 플랫폼입니다.',
-  keywords: ['핫딜', '최저가', '가격비교', '쿠팡', '절약', '싸게사게'],
+  description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
+  keywords: ['구매가이드', '가격비교', '할인정보', '정보모음', SITE_NAME],
   icons: { icon: '/favicon.ico' },
   verification: {
     google: 'AlYaCKTyHzy8ufh7Fp9WB1vUw53b-SzuLTPxuulrKnE',
@@ -24,8 +23,8 @@ export const metadata = {
   },
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: `${SITE_NAME} | 핫딜 모음 & 가격 분석`,
-    description: '지금 뜨는 핫딜과 가격 흐름을 빠르게 확인해보세요.',
+    title: `${SITE_NAME} | 정보모음`,
+    description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: 'ko_KR',
@@ -34,8 +33,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} | 핫딜 모음 & 가격 분석`,
-    description: '지금 뜨는 핫딜과 가격 흐름을 빠르게 확인해보세요.',
+    title: `${SITE_NAME} | 정보모음`,
+    description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
     images: ['/og-image.png'],
   },
   robots: {
@@ -65,11 +64,6 @@ export default function RootLayout({ children }) {
     '@type': 'WebSite',
     name: SITE_NAME,
     url: SITE_URL,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${SITE_URL}/search?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   };
 
   return (

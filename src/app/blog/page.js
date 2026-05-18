@@ -5,15 +5,15 @@ import BlogCategoryTabs from './BlogCategoryTabs.js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
-const SITE_NAME = '?멸쾶?ш쾶';
+const SITE_NAME = '싸게사게';
 
 export const metadata = {
-  title: '?뺣낫紐⑥쓬 | ?멸쾶?ш쾶',
-  description: '?ル뵜 ?쒖슜踰? 媛寃?鍮꾧탳 媛?대뱶, ?덉빟 轅?곸쓣 紐⑥븘???ㅼ쟾??釉붾줈洹몄엯?덈떎.',
+  title: `정보모음 | ${SITE_NAME}`,
+  description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
   alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
-    title: `?뺣낫紐⑥쓬 | ${SITE_NAME}`,
-    description: '?ル뵜 ?쒖슜踰뺢낵 媛寃?鍮꾧탳 ?곸쓣 鍮좊Ⅴ寃??뺤씤?대낫?몄슂.',
+    title: `정보모음 | ${SITE_NAME}`,
+    description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
     url: `${SITE_URL}/blog`,
     siteName: SITE_NAME,
     locale: 'ko_KR',
@@ -21,8 +21,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `?뺣낫紐⑥쓬 | ${SITE_NAME}`,
-    description: '?ル뵜 ?쒖슜踰뺢낵 媛寃?鍮꾧탳 ?곸쓣 鍮좊Ⅴ寃??뺤씤?대낫?몄슂.',
+    title: `정보모음 | ${SITE_NAME}`,
+    description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
   },
 };
 
@@ -59,20 +59,7 @@ async function getData() {
   if (postsResInitial?.error) {
     const msg = `${postsResInitial.error.message || ''} ${postsResInitial.error.details || ''}`.toLowerCase();
     const missingPublishedAt = msg.includes('published_at');
-    if (missingPublishedAt) {
-      const fallbackRes = await supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('published', true)
-        .order('created_at', { ascending: false });
-
-      if (!fallbackRes.error) {
-        postsRes = {
-          ...fallbackRes,
-          data: (fallbackRes.data || []).map(normalizePost),
-        };
-      }
-    } else if (postsResInitial.error.code === '42703' || postsResInitial.error.code === 'PGRST204') {
+    if (missingPublishedAt || postsResInitial.error.code === '42703' || postsResInitial.error.code === 'PGRST204') {
       const fallbackRes = await supabase
         .from('blog_posts')
         .select('*')
@@ -132,9 +119,9 @@ export default async function BlogListPage({ searchParams }) {
             <header className="sticky top-0 z-30 bg-[#FFF9E6] border-b border-[#E2E8F0]">
               <div className="bg-[#FFF9E6] px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Link href="/blog" className="flex items-center">
+                  <Link href="/" className="flex items-center">
                     <span className="text-[24px] font-black text-[#1E293B] tracking-tight leading-[48px]">
-                      ?뺣낫紐⑥쓬
+                      정보모음
                     </span>
                   </Link>
                 </div>
@@ -142,24 +129,21 @@ export default async function BlogListPage({ searchParams }) {
                   href="/"
                   className="text-[13px] font-medium text-[#64748B] hover:text-[#1E293B] px-3 py-1.5 rounded-full hover:bg-[#FAF6F0] transition-colors"
                 >
-                  ?덉쑝濡?
+                  홈
                 </Link>
               </div>
 
               <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
-                <Link href="/blog" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
-                  ?뺣낫紐⑥쓬
+                <Link href="/" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
+                  블로그
                 </Link>
                 <Link href="/login" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                  濡쒓렇??
+                  로그인
                 </Link>
               </nav>
             </header>
 
             <main className="px-4 py-8 md:py-12">
-              <header className="mb-10">
-              </header>
-
               <BlogCategoryTabs
                 posts={posts}
                 categories={categories}
@@ -168,22 +152,24 @@ export default async function BlogListPage({ searchParams }) {
                 initialSubcategorySlug={initialSubcategorySlug}
               />
             </main>
+
             <footer className="bg-white border-t border-[#E2E8F0] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[20px]">??</span>
-                <span className="text-[14px] font-bold text-[#1E293B]">?멸쾶?ш쾶</span>
+                <span className="text-[20px]">📝</span>
+                <span className="text-[14px] font-bold text-[#1E293B]">{SITE_NAME}</span>
               </div>
-              <p className="text-[12px] text-[#94A3B8] leading-relaxed mb-3">釉붾줈洹?以묎떖 ?꾩슜 援ъ“濡?정리해 둔 상태입니다.</p>
+              <p className="text-[12px] text-[#94A3B8] leading-relaxed mb-3">
+                현재 도메인 메인은 블로그 중심으로 운영하고 있습니다.
+              </p>
               <div className="flex items-center gap-3 text-[12px]">
-                <Link href="/blog" className="text-[#64748B] hover:text-[#1E293B] transition-colors">?뺣낫紐⑥쓬</Link>
-                <span className="text-[#CBD5E1]">쨌</span>
-                <Link href="/login" className="text-[#64748B] hover:text-[#1E293B] transition-colors">濡쒓렇??</Link>
-                <span className="text-[#CBD5E1]">쨌</span>
-                <span className="text-[#94A3B8]">짤 2026 ?멸쾶?ш쾶</span>
+                <Link href="/" className="text-[#64748B] hover:text-[#1E293B] transition-colors">블로그</Link>
+                <span className="text-[#CBD5E1]">·</span>
+                <Link href="/login" className="text-[#64748B] hover:text-[#1E293B] transition-colors">로그인</Link>
+                <span className="text-[#CBD5E1]">·</span>
+                <span className="text-[#94A3B8]">© 2026 {SITE_NAME}</span>
               </div>
             </footer>
           </div>
-
         </div>
       </div>
     </div>
