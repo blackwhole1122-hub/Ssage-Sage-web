@@ -5,15 +5,15 @@ import BlogCategoryTabs from './BlogCategoryTabs.js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
-const SITE_NAME = '싸게사게';
+const SITE_NAME = '?멸쾶?ш쾶';
 
 export const metadata = {
-  title: '정보모음 | 싸게사게',
-  description: '핫딜 활용법, 가격 비교 가이드, 절약 꿀팁을 모아둔 실전형 블로그입니다.',
+  title: '?뺣낫紐⑥쓬 | ?멸쾶?ш쾶',
+  description: '?ル뵜 ?쒖슜踰? 媛寃?鍮꾧탳 媛?대뱶, ?덉빟 轅?곸쓣 紐⑥븘???ㅼ쟾??釉붾줈洹몄엯?덈떎.',
   alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
-    title: `정보모음 | ${SITE_NAME}`,
-    description: '핫딜 활용법과 가격 비교 팁을 빠르게 확인해보세요.',
+    title: `?뺣낫紐⑥쓬 | ${SITE_NAME}`,
+    description: '?ル뵜 ?쒖슜踰뺢낵 媛寃?鍮꾧탳 ?곸쓣 鍮좊Ⅴ寃??뺤씤?대낫?몄슂.',
     url: `${SITE_URL}/blog`,
     siteName: SITE_NAME,
     locale: 'ko_KR',
@@ -21,8 +21,8 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `정보모음 | ${SITE_NAME}`,
-    description: '핫딜 활용법과 가격 비교 팁을 빠르게 확인해보세요.',
+    title: `?뺣낫紐⑥쓬 | ${SITE_NAME}`,
+    description: '?ル뵜 ?쒖슜踰뺢낵 媛寃?鍮꾧탳 ?곸쓣 鍮좊Ⅴ寃??뺤씤?대낫?몄슂.',
   },
 };
 
@@ -134,7 +134,7 @@ export default async function BlogListPage({ searchParams }) {
                 <div className="flex items-center gap-2">
                   <Link href="/blog" className="flex items-center">
                     <span className="text-[24px] font-black text-[#1E293B] tracking-tight leading-[48px]">
-                      정보모음
+                      ?뺣낫紐⑥쓬
                     </span>
                   </Link>
                 </div>
@@ -142,25 +142,16 @@ export default async function BlogListPage({ searchParams }) {
                   href="/"
                   className="text-[13px] font-medium text-[#64748B] hover:text-[#1E293B] px-3 py-1.5 rounded-full hover:bg-[#FAF6F0] transition-colors"
                 >
-                  홈으로
+                  ?덉쑝濡?
                 </Link>
               </div>
 
               <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
-                <Link href="/hotdeals" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                  핫딜모음
-                </Link>
-                <Link href="/coupang" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                  쿠팡핫딜
-                </Link>
-                <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                  핫딜온도계
-                </Link>
                 <Link href="/blog" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
-                  정보모음
+                  ?뺣낫紐⑥쓬
                 </Link>
-                <Link href="/utility" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                  유틸리티
+                <Link href="/login" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
+                  濡쒓렇??
                 </Link>
               </nav>
             </header>
@@ -179,16 +170,16 @@ export default async function BlogListPage({ searchParams }) {
             </main>
             <footer className="bg-white border-t border-[#E2E8F0] px-4 py-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-[20px]">🦀</span>
-                <span className="text-[14px] font-bold text-[#1E293B]">싸게사게</span>
+                <span className="text-[20px]">??</span>
+                <span className="text-[14px] font-bold text-[#1E293B]">?멸쾶?ш쾶</span>
               </div>
-              <p className="text-[12px] text-[#94A3B8] leading-relaxed mb-3">커뮤니티 핫딜을 실시간으로 모아보고,<br/>핫딜온도계로 진짜 최저가를 찾아드립니다.</p>
+              <p className="text-[12px] text-[#94A3B8] leading-relaxed mb-3">釉붾줈洹?以묎떖 ?꾩슜 援ъ“濡?정리해 둔 상태입니다.</p>
               <div className="flex items-center gap-3 text-[12px]">
-                <a href="/privacy" className="text-[#64748B] hover:text-[#1E293B] transition-colors">개인정보처리방침</a>
-                <span className="text-[#CBD5E1]">·</span>
-                <a href="/about-ssagesage" className="text-[#64748B] hover:text-[#1E293B] transition-colors">싸게사게 소개</a>
-                <span className="text-[#CBD5E1]">·</span>
-                <span className="text-[#94A3B8]">© 2026 싸게사게</span>
+                <Link href="/blog" className="text-[#64748B] hover:text-[#1E293B] transition-colors">?뺣낫紐⑥쓬</Link>
+                <span className="text-[#CBD5E1]">쨌</span>
+                <Link href="/login" className="text-[#64748B] hover:text-[#1E293B] transition-colors">濡쒓렇??</Link>
+                <span className="text-[#CBD5E1]">쨌</span>
+                <span className="text-[#94A3B8]">짤 2026 ?멸쾶?ш쾶</span>
               </div>
             </footer>
           </div>

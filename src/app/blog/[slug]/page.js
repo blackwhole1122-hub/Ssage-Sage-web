@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+﻿import { createClient } from '@supabase/supabase-js';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { buildExternalRel } from '@/lib/linkRel';
@@ -8,8 +8,8 @@ import BlogShareButton from './BlogShareButton';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
-const AFFILIATE_DISCLOSURE_TEXT = '이 게시물은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공 받습니다.';
-const SITE_NAME = '싸게사게';
+const AFFILIATE_DISCLOSURE_TEXT = '??寃뚯떆臾쇱? 荑좏뙜 ?뚰듃?덉뒪 ?쒕룞???쇳솚?쇰줈, ?댁뿉 ?곕Ⅸ ?쇱젙?≪쓽 ?섏닔猷뚮? ?쒓났 諛쏆뒿?덈떎.';
+const SITE_NAME = '?멸쾶?ш쾶';
 const resolvePublishedDate = (post) => post?.published_at || post?.created_at;
 
 function escapeHtml(str = '') {
@@ -41,7 +41,7 @@ function slugifyText(text = '') {
   return text
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9가-힣\s-]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-');
 }
@@ -180,7 +180,7 @@ function markdownToHtml(md = '') {
   });
   html = html.replace(/((?:^\|.*\|\s*$\n?){2,})/gm, (tableBlock) => renderMarkdownTable(tableBlock));
   html = html.replace(/:::startbox(?:\[(.*?)\])?\n([\s\S]*?)\n:::/g, (_m, title = '', body = '') => {
-    const safeTitle = escapeHtml((title || '이 글을 읽으면 알 수 있어요').trim());
+    const safeTitle = escapeHtml((title || 'Start here').trim());
     const items = String(body || '')
       .split('\n')
       .map((line) => line.trim())
@@ -188,7 +188,7 @@ function markdownToHtml(md = '') {
       .map((line) => line.replace(/^[-*]\s+/, ''))
       .filter(Boolean);
     if (!items.length) return '';
-    return `<section class="md-startbox"><h3 class="md-startbox-title">${safeTitle}</h3><ul class="md-startbox-list">${items.map((item) => `<li class="md-startbox-item"><span class="md-startbox-check">☑</span><span>${escapeHtml(item)}</span></li>`).join('')}</ul></section>`;
+    return `<section class="md-startbox"><h3 class="md-startbox-title">${safeTitle}</h3><ul class="md-startbox-list">${items.map((item) => `<li class="md-startbox-item"><span class="md-startbox-check">-</span><span>${escapeHtml(item)}</span></li>`).join('')}</ul></section>`;
   });
   html = html.replace(/:::faq\s*\n([\s\S]*?)\n:::/g, (_m, body = '') => {
     const lines = String(body || '').split('\n').map((line) => line.trim()).filter(Boolean);
@@ -206,7 +206,7 @@ function markdownToHtml(md = '') {
       }
     }
     if (faqItems.length === 0) return '';
-    return `<section class="md-faq"><h3 class="md-faq-title">자주 묻는 질문</h3><div class="md-faq-list">${faqItems
+    return `<section class="md-faq"><h3 class="md-faq-title">?먯＜ 臾삳뒗 吏덈Ц</h3><div class="md-faq-list">${faqItems
       .map(
         (item) =>
           `<article class="md-faq-item"><h4 class="md-faq-q">Q. ${escapeHtml(item.question)}</h4><p class="md-faq-a">A. ${escapeHtml(item.answer)}</p></article>`
@@ -325,8 +325,8 @@ async function getRelatedPosts(post) {
   return data || [];
 }
 
-function buildSubcategoryLinksHtml(title = '같은 세부카테고리 글 더보기', items = []) {
-  const safeTitle = escapeHtml(String(title || '').trim() || '같은 세부카테고리 글 더보기');
+function buildSubcategoryLinksHtml(title = 'Related posts', items = []) {
+  const safeTitle = escapeHtml(String(title || '').trim() || 'Related posts');
   if (!items.length) return '';
   return `<section class="md-subcatbox"><h3 class="md-subcatbox-title">${safeTitle}</h3><ul class="md-subcatbox-list">${items
     .map((item) => `<li class="md-subcatbox-item"><a class="md-link" href="/blog/${escapeHtml(item.slug)}">${escapeHtml(item.title)}</a></li>`)
@@ -378,7 +378,7 @@ export async function generateMetadata({ params }) {
 
   if (!post) {
     return {
-      title: '글을 찾을 수 없습니다',
+      title: '湲??李얠쓣 ???놁뒿?덈떎',
       robots: { index: false, follow: false },
     };
   }
@@ -390,7 +390,7 @@ export async function generateMetadata({ params }) {
   const publishedDate = resolvePublishedDate(post);
 
   return {
-    title: `${seoTitle || post.title} | ${SITE_NAME} 블로그`,
+    title: `${seoTitle || post.title} | ${SITE_NAME}`,
     description: summary,
     alternates: { canonical },
     keywords: Array.isArray(post.tags) ? post.tags : [],
@@ -461,8 +461,8 @@ export default async function BlogPostPage({ params }) {
       '@context': 'https://schema.org',
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: '홈', item: SITE_URL },
-        { '@type': 'ListItem', position: 2, name: '블로그', item: `${SITE_URL}/blog` },
+        { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
         { '@type': 'ListItem', position: 3, name: post.title, item: canonical },
       ],
     },
@@ -496,7 +496,7 @@ export default async function BlogPostPage({ params }) {
                   <div className="flex items-center gap-2">
                     <Link href="/blog" className="flex items-center">
                       <span className="text-[24px] font-black text-[#1E293B] tracking-tight leading-[48px]">
-                        정보모음
+                        ?뺣낫紐⑥쓬
                       </span>
                     </Link>
                   </div>
@@ -504,25 +504,16 @@ export default async function BlogPostPage({ params }) {
                     href="/"
                     className="text-[13px] font-medium text-[#64748B] hover:text-[#1E293B] px-3 py-1.5 rounded-full hover:bg-[#FAF6F0] transition-colors"
                   >
-                    홈으로
+                    ?덉쑝濡?
                   </Link>
                 </div>
 
                 <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
-                  <Link href="/hotdeals" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    핫딜모음
-                  </Link>
-                  <Link href="/coupang" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    쿠팡핫딜
-                  </Link>
-                  <Link href="/hotdeal-thermometer" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    핫딜온도계
-                  </Link>
                   <Link href="/blog" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
-                    정보모음
+                    ?뺣낫紐⑥쓬
                   </Link>
-                  <Link href="/utility" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
-                    유틸리티
+                  <Link href="/login" className="py-3 text-[14px] font-medium text-[#64748B] hover:text-[#1E293B] transition-colors">
+                    濡쒓렇??
                   </Link>
                 </nav>
               </header>
@@ -530,11 +521,11 @@ export default async function BlogPostPage({ params }) {
               <article className="px-4 py-10 md:py-16">
         <Link href="/blog" className="inline-flex items-center gap-1.5 text-[13px] text-[#64748B] hover:text-[#0ABAB5] transition-colors mb-8">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          정보모음
+          ?뺣낫紐⑥쓬
         </Link>
 
         <header className="mb-10">
-          <div className="text-4xl mb-4">{post.emoji || '📝'}</div>
+          <div className="text-4xl mb-4">{post.emoji || '?뱷'}</div>
           {categoryName && (
             <span className="inline-block text-[12px] bg-[#E6FAF9] text-[#0ABAB5] px-2.5 py-1 rounded-full mb-3 font-semibold">
               {categoryName}
@@ -553,11 +544,11 @@ export default async function BlogPostPage({ params }) {
             <time>
               {new Date(publishedDate).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
             </time>
-            <span>·</span>
-            <span>약 {readingMinutes}분 읽기</span>
+            <span>쨌</span>
+            <span>??{readingMinutes}遺??쎄린</span>
             {post.affiliate_disclosure && (
               <>
-                <span>·</span>
+                <span>쨌</span>
                 <span>{AFFILIATE_DISCLOSURE_TEXT}</span>
               </>
             )}
@@ -608,7 +599,7 @@ export default async function BlogPostPage({ params }) {
         <footer className="mt-16 pt-8 border-t border-[#E2E8F0]">
           {relatedPosts.length > 0 && (
             <div className="mb-8">
-              <h2 className="text-[16px] font-bold text-[#1E293B] mb-3">관련 글</h2>
+              <h2 className="text-[16px] font-bold text-[#1E293B] mb-3">愿??湲</h2>
               <ul className="grid gap-2 md:grid-cols-2">
                 {relatedPosts.map((item) => (
                   <li key={item.id}>
@@ -623,7 +614,7 @@ export default async function BlogPostPage({ params }) {
 
           <Link href="/blog" className="inline-flex items-center gap-2 text-[14px] text-[#0ABAB5] font-semibold hover:underline transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-            다른 글 더 보기
+            ?ㅻⅨ 湲 ??蹂닿린
           </Link>
         </footer>
               </article>
