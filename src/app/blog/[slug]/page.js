@@ -218,14 +218,14 @@ function markdownToHtml(md = '') {
     const safeHref = escapeHtml(href || '');
     const safeText = escapeHtml(text || '');
     const rel = buildExternalRel(href);
-    return `<a href="${safeHref}" class="md-coupang-btn md-coupang-btn-lg" target="_blank" rel="${rel}">${safeText}</a>`;
+    return `<a href="${safeHref}" class="md-link md-affiliate-ref md-affiliate-ref-block" target="_blank" rel="${rel}">${safeText}</a>`;
   });
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, text, href) => {
     const safeHref = escapeHtml(href || '');
     const safeText = escapeHtml(text || '');
     if (isCoupangHref(href)) {
       const rel = buildExternalRel(href);
-      return `<a href="${safeHref}" class="md-coupang-btn" target="_blank" rel="${rel}">${safeText}</a>`;
+      return `<a href="${safeHref}" class="md-link md-affiliate-ref" target="_blank" rel="${rel}">${safeText}</a>`;
     }
     if (isExternalHref(href)) {
       const rel = buildExternalRel(href);
@@ -560,8 +560,8 @@ export default async function BlogPostPage({ params }) {
           [&_.md-h3]:text-[17px] [&_.md-h3]:font-semibold [&_.md-h3]:mt-6 [&_.md-h3]:mb-2 [&_.md-h3]:text-[#1E293B]
           [&_.md-p]:text-[#1E293B] [&_.md-p]:leading-[1.9] [&_.md-p]:mb-5 [&_.md-p]:text-[15px]
           [&_.md-link]:text-[#0ABAB5] [&_.md-link]:underline [&_.md-link]:underline-offset-2
-          [&_.md-coupang-btn]:inline-flex [&_.md-coupang-btn]:items-center [&_.md-coupang-btn]:justify-center [&_.md-coupang-btn]:rounded-xl [&_.md-coupang-btn]:bg-[#ff6b35] [&_.md-coupang-btn]:px-3 [&_.md-coupang-btn]:py-1.5 [&_.md-coupang-btn]:text-[12px] [&_.md-coupang-btn]:font-bold [&_.md-coupang-btn]:text-white [&_.md-coupang-btn]:no-underline [&_.md-coupang-btn]:shadow-sm [&_.md-coupang-btn]:hover:bg-[#ff5a1f]
-          [&_.md-coupang-btn-lg]:my-3 [&_.md-coupang-btn-lg]:w-full [&_.md-coupang-btn-lg]:py-3 [&_.md-coupang-btn-lg]:text-[15px]
+          [&_.md-affiliate-ref]:font-medium [&_.md-affiliate-ref]:text-[#0F766E]
+          [&_.md-affiliate-ref-block]:my-3 [&_.md-affiliate-ref-block]:inline-block
           [&_.md-startbox]:my-6 [&_.md-startbox]:rounded-2xl [&_.md-startbox]:border [&_.md-startbox]:border-emerald-200 [&_.md-startbox]:bg-emerald-50/70 [&_.md-startbox]:px-4 [&_.md-startbox]:py-4
           [&_.md-startbox-title]:mb-2 [&_.md-startbox-title]:text-[15px] [&_.md-startbox-title]:font-bold [&_.md-startbox-title]:text-emerald-800
           [&_.md-startbox-list]:space-y-1.5
