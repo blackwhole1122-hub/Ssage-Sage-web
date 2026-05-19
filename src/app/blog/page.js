@@ -5,14 +5,14 @@ import BlogCategoryTabs from './BlogCategoryTabs.js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
-const SITE_NAME = '싸게사게';
+const SITE_NAME = '현명한 소비를 위한 생활정보';
 
 export const metadata = {
-  title: `정보모음 | ${SITE_NAME}`,
+  title: SITE_NAME,
   description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
   alternates: { canonical: `${SITE_URL}/blog` },
   openGraph: {
-    title: `정보모음 | ${SITE_NAME}`,
+    title: SITE_NAME,
     description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
     url: `${SITE_URL}/blog`,
     siteName: SITE_NAME,
@@ -21,7 +21,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `정보모음 | ${SITE_NAME}`,
+    title: SITE_NAME,
     description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
   },
 };
@@ -120,8 +120,8 @@ export default async function BlogListPage({ searchParams }) {
               <div className="bg-[#FFF9E6] px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Link href="/" className="flex items-center">
-                    <span className="text-[24px] font-black text-[#1E293B] tracking-tight leading-[48px]">
-                      정보모음
+                    <span className="text-[20px] font-black text-[#1E293B] tracking-tight leading-[1.4]">
+                      {SITE_NAME}
                     </span>
                   </Link>
                 </div>
@@ -135,7 +135,7 @@ export default async function BlogListPage({ searchParams }) {
 
               <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
                 <Link href="/" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
-                  블로그
+                  {SITE_NAME}
                 </Link>
               </nav>
             </header>
@@ -156,10 +156,10 @@ export default async function BlogListPage({ searchParams }) {
                 <span className="text-[14px] font-bold text-[#1E293B]">{SITE_NAME}</span>
               </div>
               <p className="text-[12px] text-[#94A3B8] leading-relaxed mb-3">
-                현재 도메인 메인은 블로그 중심으로 운영하고 있습니다.
+                현재 도메인 메인은 생활정보 블로그 중심으로 운영하고 있습니다.
               </p>
               <div className="flex items-center gap-3 text-[12px]">
-                <Link href="/" className="text-[#64748B] hover:text-[#1E293B] transition-colors">블로그</Link>
+                <Link href="/" className="text-[#64748B] hover:text-[#1E293B] transition-colors">{SITE_NAME}</Link>
                 <span className="text-[#CBD5E1]">·</span>
                 <Link href="/privacy" className="text-[#64748B] hover:text-[#1E293B] transition-colors">개인정보처리방침</Link>
                 <span className="text-[#CBD5E1]">·</span>

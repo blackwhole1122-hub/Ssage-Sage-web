@@ -9,7 +9,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const SITE_URL = 'https://www.ssagesage.com';
 const AFFILIATE_DISCLOSURE_TEXT = '이 글에는 제휴 링크가 포함될 수 있으며, 이에 따른 소정의 수수료를 제공받을 수 있습니다.';
-const SITE_NAME = '싸게사게';
+const SITE_NAME = '현명한 소비를 위한 생활정보';
 const resolvePublishedDate = (post) => post?.published_at || post?.created_at;
 
 function escapeHtml(str = '') {
@@ -496,7 +496,7 @@ export default async function BlogPostPage({ params }) {
                   <div className="flex items-center gap-2">
                     <Link href="/blog" className="flex items-center">
                       <span className="text-[24px] font-black text-[#1E293B] tracking-tight leading-[48px]">
-                        정보모음
+                        {SITE_NAME}
                       </span>
                     </Link>
                   </div>
@@ -510,7 +510,7 @@ export default async function BlogPostPage({ params }) {
 
                 <nav className="bg-[#FFF9E6] px-4 pb-1 flex items-center gap-5">
                   <Link href="/blog" className="relative py-3 text-[14px] font-bold text-[#0ABAB5] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-[2.5px] after:bg-[#0ABAB5] after:rounded-full">
-                    블로그
+                    {SITE_NAME}
                   </Link>
                 </nav>
               </header>
@@ -518,7 +518,7 @@ export default async function BlogPostPage({ params }) {
               <article className="px-4 py-10 md:py-16">
         <Link href="/blog" className="inline-flex items-center gap-1.5 text-[13px] text-[#64748B] hover:text-[#0ABAB5] transition-colors mb-8">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          정보모음
+          {SITE_NAME}
         </Link>
 
         <header className="mb-10">

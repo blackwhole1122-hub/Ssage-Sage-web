@@ -16,14 +16,14 @@ export default function BlogBackButton() {
   }, []);
 
   return (
-    <Link 
-      href={referrer} 
+    <Link
+      href={referrer}
       className="inline-flex items-center gap-1.5 text-[13px] text-[#64748B] hover:text-[#0ABAB5] transition-colors mb-8"
     >
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="m15 18-6-6 6-6"/>
       </svg>
-      정보모음
+      현명한 소비를 위한 생활정보
     </Link>
   );
 }

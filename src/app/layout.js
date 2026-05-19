@@ -6,16 +6,16 @@ import SiteAnalyticsTracker from '@/components/SiteAnalyticsTracker';
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] });
 const SITE_URL = 'https://www.ssagesage.com';
-const SITE_NAME = '싸게사게';
+const SITE_NAME = '현명한 소비를 위한 생활정보';
 
 export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} | 정보모음`,
+    default: SITE_NAME,
     template: `%s | ${SITE_NAME}`,
   },
   description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
-  keywords: ['구매가이드', '가격비교', '할인정보', '정보모음', SITE_NAME],
+  keywords: ['구매가이드', '가격비교', '할인정보', '생활정보', SITE_NAME],
   icons: { icon: '/favicon.ico' },
   verification: {
     google: 'AlYaCKTyHzy8ufh7Fp9WB1vUw53b-SzuLTPxuulrKnE',
@@ -23,7 +23,7 @@ export const metadata = {
   },
   alternates: { canonical: SITE_URL },
   openGraph: {
-    title: `${SITE_NAME} | 정보모음`,
+    title: SITE_NAME,
     description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
     url: SITE_URL,
     siteName: SITE_NAME,
@@ -33,7 +33,7 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: `${SITE_NAME} | 정보모음`,
+    title: SITE_NAME,
     description: '실속 있는 구매 가이드와 비교 정보를 모아보는 블로그입니다.',
     images: ['/og-image.png'],
   },

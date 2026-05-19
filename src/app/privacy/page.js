@@ -1,8 +1,8 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: '개인정보처리방침 | 싸게사게',
-  description: '싸게사게 개인정보처리방침 안내 페이지입니다.',
+  title: '개인정보처리방침 | 현명한 소비를 위한 생활정보',
+  description: '현명한 소비를 위한 생활정보 개인정보처리방침 안내 페이지입니다.',
   robots: {
     index: true,
     follow: true,
@@ -26,7 +26,7 @@ export default function PrivacyPolicyPage() {
               href="/"
               className="rounded-full border border-[#E2E8F0] px-4 py-2 text-[13px] font-medium text-[#475569] hover:bg-[#FAF6F0]"
             >
-              블로그로
+              메인으로
             </Link>
           </div>
 
