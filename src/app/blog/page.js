@@ -92,7 +92,7 @@ function buildItemListJsonLd(posts = []) {
     itemListElement: posts.slice(0, 20).map((post, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      url: `${SITE_URL}/blog/${post.slug}`,
+      url: `${SITE_URL}/${post.slug}`,
       name: post.title,
     })),
   };

@@ -434,7 +434,7 @@ function getSeoChecks({ title, description, slug, content, textStats, headingLis
     {
       key: 'slug',
       label: 'Slug quality',
-      detail: normalizedSlug ? `/blog/${normalizedSlug}` : 'Slug is empty',
+      detail: normalizedSlug ? `/${normalizedSlug}` : 'Slug is empty',
       ok: !!normalizedSlug && !/\s/.test(normalizedSlug) && normalizedSlug.length <= 80,
     },
     {
@@ -1651,7 +1651,7 @@ function BlogEditorInner() {
     const start = internalLinkSelection.start ?? 0;
     const end = internalLinkSelection.end ?? 0;
     const selected = content.slice(start, end) || post.title;
-    const linkMd = `[${selected}](/blog/${post.slug})`;
+    const linkMd = `[${selected}](/${post.slug})`;
     const newText = content.slice(0, start) + linkMd + content.slice(end);
     setContent(newText);
     setInternalLinkPickerOpen(false);
@@ -1954,7 +1954,7 @@ function BlogEditorInner() {
 
   async function triggerSitemapRevalidate(targetSlug = '') {
     const paths = ['/sitemap.xml', '/blog'];
-    if (targetSlug) paths.push(`/blog/${targetSlug}`);
+    if (targetSlug) paths.push(`/${targetSlug}`, `/blog/${targetSlug}`);
 
     try {
       await fetch('/api/revalidate', {
@@ -2093,7 +2093,7 @@ function BlogEditorInner() {
           </div>
 
           <div className="flex items-center gap-2 bg-gray-50 rounded-2xl px-4 py-2.5">
-            <span className="text-xs text-gray-400 font-mono">/blog/</span>
+            <span className="text-xs text-gray-400 font-mono">/</span>
             <input
               type="text"
               value={slug}
@@ -2450,7 +2450,7 @@ function BlogEditorInner() {
           </div>
 
           <div className="border border-gray-200 rounded-2xl p-4 bg-white">
-            <div className="text-[11px] text-green-700">https://example.com/blog/{slug || 'your-slug'}</div>
+            <div className="text-[11px] text-green-700">https://example.com/{slug || 'your-slug'}</div>
             <div className="mt-1 text-lg text-blue-700 font-semibold line-clamp-2">{seoTitle || title || '제목이 여기에 표시됩니다.'}</div>
             <div className="mt-1 text-sm text-gray-600 line-clamp-3">{seoDescription || description || '설명을 입력하면 구글/공유 미리보기에 더 잘 보일 수 있어요.'}</div>
             {(ogImageUrl || thumbnailUrl) && (
@@ -2709,7 +2709,7 @@ function BlogEditorInner() {
                         className="w-full px-4 py-3 text-left hover:bg-gray-50"
                       >
                         <div className="text-sm font-semibold text-gray-800">{post.title}</div>
-                        <div className="mt-1 text-[11px] text-gray-400">/blog/{post.slug}</div>
+                        <div className="mt-1 text-[11px] text-gray-400">/{post.slug}</div>
                       </button>
                     </li>
                   ))}

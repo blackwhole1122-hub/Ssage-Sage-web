@@ -235,7 +235,7 @@ export default function BlogCategoryTabs({
               return (
                 <Link
                   key={post.id}
-                  href={`/blog/${post.slug}`}
+                  href={`/${post.slug}`}
                   className="group bg-white rounded-2xl border border-[#E2E8F0] hover:border-[#0ABAB5] transition-all duration-200 overflow-hidden flex flex-col deal-card"
                 >
                   <img
@@ -258,7 +258,7 @@ export default function BlogCategoryTabs({
             return (
               <Link
                 key={post.id}
-                href={`/blog/${post.slug}`}
+                href={`/${post.slug}`}
                 className="group bg-white rounded-2xl p-5 border border-[#E2E8F0] hover:border-[#0ABAB5] transition-all duration-200 overflow-hidden flex flex-col deal-card"
               >
                 <div className={`w-12 h-12 flex items-center justify-center bg-[#FAF6F0] rounded-xl text-2xl mb-4 transition-colors ${hoverBg}`}>

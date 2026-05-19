@@ -29,6 +29,16 @@ function toHost(value = '') {
   }
 }
 
+function extractBlogSlugFromPath(path = '') {
+  const normalized = String(path || '').trim();
+  if (!normalized) return '';
+  if (normalized.startsWith('/blog/')) return normalized.replace(/^\/blog\//, '');
+  if (/^\/[^/]+$/.test(normalized) && !['/', '/blog', '/privacy', '/login'].includes(normalized)) {
+    return normalized.slice(1);
+  }
+  return '';
+}
+
 function topEntries(mapLike, limit = 10) {
   return Object.entries(mapLike)
     .map(([key, value]) => ({ key, value: asNumber(value) }))
@@ -190,7 +200,7 @@ export default function AdminAnalyticsPage() {
     const shortConversionMap = {};
     const slugTitleMap = new Map(blogPosts.map((post) => [post.slug, post.title || post.slug]));
     const toBlogLabel = (path) => {
-      const slug = String(path || '').replace(/^\/blog\//, '');
+      const slug = extractBlogSlugFromPath(path);
       return slugTitleMap.get(slug) || decodeURIComponent(slug || path || '');
     };
 
@@ -201,7 +211,7 @@ export default function AdminAnalyticsPage() {
       if (e.campaign) campaignMap[e.campaign] = (campaignMap[e.campaign] || 0) + 1;
       if (e.short_slug) shortInflowMap[e.short_slug] = (shortInflowMap[e.short_slug] || 0) + 1;
 
-      if (String(e.page_path || '').startsWith('/blog/')) {
+      if (extractBlogSlugFromPath(e.page_path)) {
         blogViewMap[e.page_path] = (blogViewMap[e.page_path] || 0) + 1;
         if (!blogCtrMap[e.page_path]) blogCtrMap[e.page_path] = { views: 0, clicks: 0 };
         blogCtrMap[e.page_path].views += 1;
@@ -220,7 +230,7 @@ export default function AdminAnalyticsPage() {
 
     coupangClicks.forEach((e) => {
       if (e.target_url) productClickMap[e.target_url] = (productClickMap[e.target_url] || 0) + 1;
-      if (String(e.page_path || '').startsWith('/blog/')) {
+      if (extractBlogSlugFromPath(e.page_path)) {
         if (!blogCtrMap[e.page_path]) blogCtrMap[e.page_path] = { views: 0, clicks: 0 };
         blogCtrMap[e.page_path].clicks += 1;
       }
@@ -269,7 +279,7 @@ export default function AdminAnalyticsPage() {
         const conversions = shortConversionMap[slug] || 0;
         return {
           slug,
-          targetUrl: `/blog/${post.slug}`,
+          targetUrl: `/${post.slug}`,
           clickCount: clicks,
           conversionRate: percent(conversions, clicks),
         };
@@ -354,13 +364,13 @@ export default function AdminAnalyticsPage() {
     const slugTitleMap = new Map(blogPosts.map((post) => [post.slug, post.title || post.slug]));
 
     const toBlogLabel = (path) => {
-      const slug = String(path || '').replace(/^\/blog\//, '');
+      const slug = extractBlogSlugFromPath(path);
       return slugTitleMap.get(slug) || decodeURIComponent(slug || path || '');
     };
 
     filteredPageViews.forEach((e) => {
       const path = String(e.page_path || '');
-      if (path.startsWith('/blog/')) {
+      if (extractBlogSlugFromPath(path)) {
         const label = toBlogLabel(path);
         blogViewMap[label] = (blogViewMap[label] || 0) + 1;
       }

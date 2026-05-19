@@ -26,6 +26,7 @@ export function detectPageType(pathname = '') {
   if (!pathname) return 'unknown';
   if (pathname.startsWith('/blog/')) return 'blog_post';
   if (pathname === '/blog') return 'blog_list';
+  if (/^\/[^/]+$/.test(pathname) && !['/', '/privacy', '/login'].includes(pathname)) return 'blog_post';
   if (pathname.startsWith('/deal/')) return 'hotdeal_detail';
   if (pathname.startsWith('/hotdeals')) return 'hotdeals';
   if (pathname.startsWith('/coupang/')) return 'product_detail';
@@ -156,4 +157,3 @@ export function classifyClickEvent(href, currentHost = '') {
     return '';
   }
 }
-
