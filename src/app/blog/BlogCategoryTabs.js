@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 const CATEGORY_ICONS = {};
 const CATEGORY_COLORS = {};
+const HIDDEN_CATEGORY_NAMES = new Set(['게임', '반려동물']);
 
 export default function BlogCategoryTabs({
   posts,
@@ -151,7 +152,7 @@ export default function BlogCategoryTabs({
               setActiveSubcategoryId(null);
               updateURL(cat.id, null);
             }}
-            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            className={`${HIDDEN_CATEGORY_NAMES.has(cat.name) ? 'hidden ' : ''}px-4 py-2 rounded-full text-[13px] font-medium transition-all whitespace-nowrap flex items-center gap-1.5 ${
               activeCategoryId === cat.id
                 ? 'bg-[#1E293B] text-white'
                 : 'bg-[#FAF6F0] text-[#64748B] hover:bg-[#F0EAE0] hover:text-[#1E293B]'
